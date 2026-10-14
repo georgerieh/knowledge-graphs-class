@@ -24,27 +24,22 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - OLLAMA_HOST=http://ollama:11434
-      - NEO4J_URI=${url}
-      - PYTHONUNBUFFERED=1
+      AI_API_URL: ${url_model} 
+      NEO4J_URI: bolt://neo4j:7687
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      PYTHONUNBUFFERED: 1
+      stage: prod
+    volumes:
+      - .:/app
+      - /app/.venv
     depends_on:
-      ollama:
-        condition: service_started
       neo4j:
         condition: service_healthy
     deploy:
       resources:
         limits:
-          memory: 7G
+          memory: 4G
         reservations:
           memory: 1G
 
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-
-volumes:
-  ollama_data:
+# 
