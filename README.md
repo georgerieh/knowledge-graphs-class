@@ -1,4 +1,6 @@
 # knowledge-graphs-class
+## Intro
+This project aims to track academic communities, and also networks across researchers, research articles and keywords. There are 4,894,081 papers and 45,564,149 citation relationships, which is extended by graph relations across venues, institutions, articles, researchers and keywords
 
 ## Schema:
 ```
@@ -7,8 +9,13 @@
    └──────[:PUBLISHED_IN] -> (:Venue)
    └──────[:HAS_KEYWORD]──────> (:Keyword)
  (:Author) ──────[:WORKS_AT]──────> (:Institution)
-   └──────[:CO_AUTHORED_WITH] -> (:Author)
 ```
+
+### 2 Projections 
+are available
+
+- Networking: (:Author)-[:CO_AUTHORED_WITH]->(:Author)
+- KeywordNetwork (:Keyword)-[:SHARED_ARTICLE]->(:Keyword)
 
 ## Make commands (for convenience)
 
@@ -53,3 +60,23 @@ Commands:
 ├── README.md
 └── uv.lock
 ```
+
+## Available API endpoints
+![API](docs/API_Definition.png)
+
+## Dataset provenance
+Taken from: https://www.kaggle.com/datasets/mathurinache/citation-network-dataset under CC BY-NC-SA 4.0
+
+
+Sources
+https://www.aminer.org/citation
+
+Collection Methodology
+The data set is designed for research purpose only. The citation data is extracted from DBLP, ACM, MAG (Microsoft Academic Graph), and other sources. The first version contains 629,814 papers and 632,752 citations. Each paper is associated with abstract, authors, year, venue, and title. The data set can be used for clustering with network and side information, studying influence in the citation network, finding the most influential papers, topic modeling analysis, etc.
+
+## How to start
+
+```
+docker compose up
+```
+then navigate to [demo](app/demo.ipynb)
