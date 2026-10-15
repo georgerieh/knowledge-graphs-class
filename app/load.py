@@ -1,31 +1,38 @@
+"""Module to load data to Neo4j"""
 import ast
 import gc
-import pandas as pd
-from dotenv import dotenv_values
-from neo4j import GraphDatabase
-from tqdm_loggable.auto import tqdm
-import numpy as np
-import sys
 import math
 import logging
+import pandas as pd
+from dotenv import dotenv_values
+import numpy as np
 
 config = dotenv_values(".env")
 logging.basicConfig(level=logging.INFO)
 
 
 def clean_val(val):
+    '''
+    Replace Nan to None while inserting to database'''
     if isinstance(val, float) and math.isnan(val):
         return None
     return val
 
 
 def run_query(driver, query, parameters=None):
+    '''
+    Run simple query function
+    '''
     with driver.session() as session:
         result = session.run(query, parameters)
         return [r.data() for r in result]
 
 
 def main(driver):
+    '''
+    Function is collection of calls imported to main 
+    file to be run on startup
+    '''
     chunk_size = 5000
     i = 0
 
@@ -34,7 +41,8 @@ def main(driver):
         run_query(driver, "CREATE CONSTRAINT IF NOT EXISTS FOR (t:Article) REQUIRE t.id IS UNIQUE;")
         run_query(driver, "CREATE CONSTRAINT IF NOT EXISTS FOR (v:Venue) REQUIRE v.id IS UNIQUE;")
         run_query(driver, "CREATE CONSTRAINT IF NOT EXISTS FOR (k:Keyword) REQUIRE k.id IS UNIQUE;")
-        run_query(driver, "CREATE CONSTRAINT IF NOT EXISTS FOR (i:Institution) REQUIRE i.id IS UNIQUE;")
+        run_query(driver,\
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (i:Institution) REQUIRE i.id IS UNIQUE;")
 
     def load_data_venue(csv_data):
         # Drop rows where VenueId is missing/NaN/None
@@ -165,10 +173,11 @@ def main(driver):
                             if len(a) >= 3 and a[1] is not None:
                                 author_data.append((a[0], a[1], a[2]))
                                 author_institution.append(a[2])
-                    except Exception:
+                    except ExceptionGroup:
                         continue
                 if author_institution:
-                    df_authors = pd.DataFrame(author_institution, columns=["AuthorInstitution"]).drop_duplicates(
+                    df_authors = pd.DataFrame(author_institution, columns=["AuthorInstitution"])\
+                        .drop_duplicates(
                         subset=["AuthorInstitution"]
                     )
                     load_data_institution(df_authors)
@@ -186,10 +195,11 @@ def main(driver):
                         v = ast.literal_eval(val)
                         if v and len(v) >= 2 and v[0] is not None:
                             venue_data.append((v[0], v[1]))
-                    except Exception:
+                    except ExceptionGroup:
                         continue
                 if venue_data:
-                    df_venues = pd.DataFrame(venue_data, columns=["VenueId", "VenueRaw"]).drop_duplicates(
+                    df_venues = pd.DataFrame(venue_data, columns=["VenueId", "VenueRaw"])\
+                        .drop_duplicates(
                         subset=["VenueId"]
                     )
                     load_data_venue(df_venues)
@@ -202,7 +212,8 @@ def main(driver):
                         if k.strip():
                             keywords_list.append(k.strip())
                 if keywords_list:
-                    df_keywords = pd.Series(keywords_list).drop_duplicates().to_frame(name="keyword")
+                    df_keywords = pd.Series(keywords_list).drop_duplicates()\
+                        .to_frame(name="keyword")
                     load_data_keyword(df_keywords)
                     del df_keywords
 
@@ -210,17 +221,19 @@ def main(driver):
             for _, row in chunk.iterrows():
                 try:
                     author_ids = (
-                        [a[1] for a in ast.literal_eval(row["author_list"]) if len(a) > 1 and a[1] is not None]
+                        [a[1] for a in ast.literal_eval(row["author_list"]) \
+                            if len(a) > 1 and a[1] is not None]
                         if pd.notna(row.get("author_list"))
                         else []
                     )
-                except Exception:
+                except ExceptionGroup:
                     author_ids = []
 
                 try:
-                    v_parsed = ast.literal_eval(row["venue_list"]) if pd.notna(row.get("venue_list")) else None
+                    v_parsed = ast.literal_eval(row["venue_list"]) if \
+                        pd.notna(row.get("venue_list")) else None
                     venue_ids = v_parsed[0] if v_parsed and len(v_parsed) > 0 else None
-                except Exception:
+                except ExceptionGroup:
                     venue_ids = None
 
                 keywords = (
@@ -257,14 +270,5 @@ def main(driver):
             if i % 10 == 0:
                 print(f"{i}th chunk has been processed", flush=True)
         i += 1
-
-    # run_query(
-    #     driver,
-    #     """
-    #         MATCH (auth1:Author)<-[:WRITTEN_BY]-(a:Article)-[:WRITTEN_BY]->(auth2:Author)
-    #         WHERE auth1 <> auth2
-    #         MERGE (auth1)-[:CO_AUTHORED_WITH]-(auth2)
-    #         """,
-    # )
 
     print("All data successfully processed")
