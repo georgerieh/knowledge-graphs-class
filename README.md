@@ -2,6 +2,11 @@
 ## Intro
 This project aims to track academic communities, and also networks across researchers, research articles and keywords. There are 4,894,081 papers and 45,564,149 citation relationships, which is extended by graph relations across venues, institutions, articles, researchers and keywords
 
+## Badges
+
+[![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
+
+
 ## Schema:
 ```
 (:Article) ──[:WRITTEN_BY]──> (:Author)

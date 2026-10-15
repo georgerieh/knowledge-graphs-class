@@ -1,3 +1,4 @@
+"""Module to define tools for LLM"""
 from pathlib import Path
 import requests
 from langchain.tools import tool
@@ -9,8 +10,9 @@ env_path = project_root / ".env"
 config = dotenv_values(env_path)
 load_dotenv()
 
+
 @tool
-def get_researcher_basic_info(who: str = None, id: int = None):
+def get_researcher_basic_info(who: str = None, _id: int = None):
     """Accepts $who: name of person or $id: id of person. In first case, \
         returns at most 5 people who have this name, their id and institution, \
         in second case return specific person info
@@ -20,7 +22,7 @@ def get_researcher_basic_info(who: str = None, id: int = None):
             id: Id of the researcher in database
         """
     url_ = "http://localhost:8000/api/researcher/get_info"
-    params = {"who": who, "id": id}
+    params = {"who": who, "id": _id}
     response = requests.get(url_, params=params, timeout=120)
     if response.status_code == 200:
         return response.json()
@@ -28,11 +30,11 @@ def get_researcher_basic_info(who: str = None, id: int = None):
 
 
 @tool
-def get_researcher_works_info(id: int):
+def get_researcher_works_info(_id: int):
     """Accepts author id as a parameter, \
         returns author works in decreasing order of quoting number"""
     url_ = "http://localhost:8000/api/researcher/get_works_info"
-    params = {"id": id}
+    params = {"id": _id}
     response = requests.get(url_, params=params, timeout=120)
     if response.status_code == 200:
         return response.json()
@@ -40,10 +42,10 @@ def get_researcher_works_info(id: int):
 
 
 @tool
-def get_h_index_of(id: int):
+def get_h_index_of(_id: int):
     """Accepts author id as a parameter, returns author h index"""
     url_ = "http://localhost:8000/api/researcher/h_index"
-    params = {"id": id}
+    params = {"id": _id}
     response = requests.get(url_, params=params, timeout=120)
     if response.status_code == 200:
         return response.json()
@@ -51,10 +53,10 @@ def get_h_index_of(id: int):
 
 
 @tool
-def get_alike(id: int):
+def get_alike(_id: int):
     """Accepts author id as a parameter, returns other authors in his community"""
     url_ = "http://localhost:8000/api/community/search"
-    params = {"id": id}
+    params = {"id": _id}
     response = requests.get(url_, params=params, timeout=120)
     if response.status_code == 200:
         return response.json()
@@ -74,10 +76,10 @@ def get_path(id1: int, id2: int):
 
 
 @tool
-def get_paper_basic_info(id: int):
+def get_paper_basic_info(_id: int):
     """Accepts id as a paper id, returns basic info"""
     url_ = "http://localhost:8000/api/paper/get_info"
-    params = {"id": id}
+    params = {"id": _id}
     response = requests.get(url_, params=params, timeout=120)
     if response.status_code == 200:
         return response.json()
@@ -96,14 +98,15 @@ def get_keyword_alike_api(keyword: str):
 
 
 @tool
-def get_articles_of_author(id: int):
+def get_articles_of_author(_id: int):
     """Accepts author id, returns their most influential works (5)"""
     url_ = "http://localhost:8000/api/researcher/most_influential"
-    params = {"id": id}
+    params = {"id": _id}
     response = requests.get(url_, params=params, timeout=120)
     if response.status_code == 200:
         return response.json()
     return {"error": "Impossible to get info (Tool: influential works)"}
+
 
 @tool
 def get_keyword_community(keyword: str):

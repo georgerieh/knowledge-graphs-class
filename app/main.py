@@ -1,8 +1,11 @@
-from fastapi import FastAPI, Query, Depends
-from neo4j import GraphDatabase
-from dotenv import dotenv_values
-from load import main, run_query
+"""Module to run the FASTAPI Server"""
 import os
+from load import main
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from dotenv import dotenv_values
+from agent.graph import agent
+from neo4j import GraphDatabase
 
 config = dotenv_values(".env")
 
@@ -12,16 +15,28 @@ URI = os.getenv("NEO4J_URI")
 AUTH = (config["graphs_username"], config["graphs_pass"])
 try:
     driver = GraphDatabase.driver(URI, auth=AUTH)
-except:
-    pass
+except Exception as e:
+    raise ConnectionError from e
 
 
 def get_db_driver():
+    """
+    OOP pattern
+    """
     return driver
+
+
+class Prompt(BaseModel):
+    """
+    Used in LLM Call"""
+
+    prompt: str
 
 
 @app.on_event("startup")
 async def startup_event():
+    """
+    This calling is necessary on start"""
     driver.verify_connectivity()
     print("Connection established.")
     with driver.session() as session:
@@ -51,10 +66,11 @@ async def startup_event():
         )
         record = proj_result.single()
         print(
-            f"Graph 'Networking' projected: {record['nodeCount']} nodes, {record['relationshipCount']} relationships."
+            f"Graph 'Networking' projected: {record['nodeCount']} nodes, \
+                {record['relationshipCount']} relationships."
         )
         louvain_result = session.run(
-                    """
+            """
                         CALL gds.louvain.write(
                             'Networking',
                             {
@@ -63,10 +79,12 @@ async def startup_event():
                         )
                         YIELD communityCount, modularity, ranLevels
                         RETURN communityCount, modularity, ranLevels
-                    """)
+                    """
+        )
         l_record = louvain_result.single()
         print(
-            f"Louvain completed: {l_record['communityCount']} communities found (Modularity: {l_record['modularity']:.4f})."
+            f"Louvain completed: {l_record['communityCount']} communities found (Modularity: {\
+                l_record['modularity']:.4f})."
         )
         proj_result2 = session.run(
             """
@@ -83,9 +101,11 @@ async def startup_event():
         )
         record = proj_result2.single()
         print(
-            f"Graph 'KeywordNetwork' projected: {record['nodeCount']} nodes, {record['relationshipCount']} relationships."
+            f"Graph 'KeywordNetwork' projected: {record['nodeCount']} nodes, {\
+                record['relationshipCount']} relationships."
         )
-        louvain_result2 = session.run(""" \
+        louvain_result2 = session.run(
+            """ \
                 CALL gds.louvain.write(
                     'KeywordNetwork',
                     {
@@ -94,16 +114,19 @@ async def startup_event():
                 )
                 YIELD communityCount, modularity, ranLevels
                 RETURN communityCount, modularity, ranLevels
-            """)
+            """
+        )
         l_record = louvain_result2.single()
         print(
-            f"Louvain completed: {l_record['communityCount']} communities found (Modularity: {l_record['modularity']:.4f})."
+            f"Louvain completed: {l_record['communityCount']} communities found (Modularity: {\
+                l_record['modularity']:.4f})."
         )
 
 
 @app.get("/")
 async def root():
-    # TODO: Add main page
+    """
+    Root"""
     return {"message": "Hello World"}
 
 
@@ -126,7 +149,11 @@ async def root():
 
 
 @app.get("/api/researcher/get_info")
-def get_researcher_basic_info_api(who: str = None, id: int = None, driver=Depends(get_db_driver)):
+def get_researcher_basic_info_api(who: str = None, _id: int = None):
+    """
+    Takes id of author, and returns his id and his institution (NOT WORKS).
+    In case more than 1 person have this name
+    """
     query = """
     MATCH (n:Author)
     WHERE ($id IS NOT NULL AND n.id = $id)
@@ -135,7 +162,7 @@ def get_researcher_basic_info_api(who: str = None, id: int = None, driver=Depend
     LIMIT 5
     """
     with driver.session() as session:
-        result = session.run(query, {"who": who, "id": id})
+        result = session.run(query, {"who": who, "id": _id})
         return [record.data() for record in result]
     # if not results:
     #     return f"No researcher found similar t name {who}."
@@ -144,28 +171,29 @@ def get_researcher_basic_info_api(who: str = None, id: int = None, driver=Depend
     #     return f"Possible names of {who} are: " + ", ".join(names_list)
 
 
-@app.get("/api/researcher/get_works_info")
-def get_researcher_works_info_api(id: int, driver=Depends(get_db_driver)):
-    query = """
-    CALL {
-        MATCH (n:Author {id: $id})<-[:WRITTEN_BY]-(m)
-        RETURN m.id as paper, COUNT((m)<-[:REFERENCES]-[n]) AS quotes
-    }
-    RETURN paper, quotes
-    ORDER BY quotes DESC
-    """
-    with driver.session() as session:
-        result = session.run(query, {"id": id})
-        return [record.data() for record in result]
-    # if not results:
-    #     return f"No researcher found similar t name {who}."
-    # else:
-    #     names_list = [record["name"] for record in results]
-    #     return f"Possible names of {who} are: " + ", ".join(names_list)
+# @app.get("/api/researcher/get_works_info")
+# def get_researcher_works_info_api(id: int):
+#     '''
+#     Takes id of author, and returns 30 other
+#     researchers in the same community'''
+#     query = """
+#     CALL {
+#         MATCH (n:Author {id: $id})<-[:WRITTEN_BY]-(m)
+#         RETURN m.id as paper, COUNT((m)<-[:REFERENCES]-[n]) AS quotes
+#     }
+#     RETURN paper, quotes
+#     ORDER BY quotes DESC
+#     """
+#     with driver.session() as session:
+#         result = session.run(query, {"id": id})
+#         return [record.data() for record in result]
 
 
 @app.get("/api/researcher/h_index")
-def get_h_index_of_api(id: int, driver=Depends(get_db_driver)):
+def get_h_index_of_api(_id: int):
+    """
+    Takes id of author, and calculates his H-index
+    """
     query = """
     
     MATCH (n:Author {id: $id})<-[:WRITTEN_BY]-(t:Article)
@@ -179,16 +207,14 @@ def get_h_index_of_api(id: int, driver=Depends(get_db_driver)):
     RETURN coalesce(max(i), 0) AS h_index
     """
     with driver.session() as session:
-        result = session.run(query, {"id": id})
+        result = session.run(query, {"id": _id})
         return [record.data() for record in result]
-    # if not results:
-    #     return f"No researcher found with name {of}."
-    # else:
-    #     return f"H-index of {of} is {results}"
 
 
 @app.get("/api/researcher/most_influential")
-def get_articles_of_author_api(id: int, driver=Depends(get_db_driver)):
+def get_articles_of_author_api(_id: int):
+    """
+    Takes id of author, and returns 5 his most quoted works"""
     query = """
     
     MATCH (n:Author {id: $id})<-[:WRITTEN_BY]-(t:Article)
@@ -199,16 +225,15 @@ def get_articles_of_author_api(id: int, driver=Depends(get_db_driver)):
     LIMIT 5
     """
     with driver.session() as session:
-        result = session.run(query, {"id": id})
+        result = session.run(query, {"id": _id})
         return [record.data() for record in result]
-    # if not results:
-    #     return f"No researcher found with name {of}."
-    # else:
-    #     return f"H-index of {of} is {results}"
 
 
 @app.get("/api/community/search")
-def get_alike_api(id: int, driver=Depends(get_db_driver)):
+def get_alike_api(_id: int):
+    """
+    Takes id of author, and returns 30 other
+    researchers in the same community"""
     query = """
     CALL {
     MATCH (a:Author {id: $similar_to})
@@ -218,17 +243,17 @@ def get_alike_api(id: int, driver=Depends(get_db_driver)):
     MATCH (a:Author)
     WHERE a.louvainCommunity = id
     RETURN a.name
+    LIMIT 30
     """
     with driver.session() as session:
-        result = session.run(query, {"similar_to": id})
+        result = session.run(query, {"similar_to": _id})
         return [record.data() for record in result]
 
 
-## introduce one scientist to another path
-
-
 @app.get("/api/networking")
-def get_path_api(id1: int, id2: int, driver=Depends(get_db_driver)):
+def get_path_api(id1: int, id2: int):
+    """
+    Takes id of researcher 1 and 2 and shows path between them by CO_AUTHORED_WITH relations"""
     query = """
     CALL gds.allShortestPaths.delta.stream('Networking', {
         sourceNode: $source
@@ -251,24 +276,23 @@ def get_path_api(id1: int, id2: int, driver=Depends(get_db_driver)):
 
 
 @app.get("/api/paper/get_info")
-def get_paper_basic_info_api(id: int = None, driver=Depends(get_db_driver)):
+def get_paper_basic_info_api(_id: int = None):
+    """
+    Takes id of paper, and returns info about this paper"""
     query = """
     MATCH (n:Article)
     WHERE ($id IS NOT NULL AND n.id = $id)
     RETURN n
     """
     with driver.session() as session:
-        result = session.run(query, {"id": id})
+        result = session.run(query, {"id": _id})
         return [record.data() for record in result]
-    # if not results:
-    #     return f"No researcher found similar t name {who}."
-    # else:
-    #     names_list = [record["name"] for record in results]
-    #     return f"Possible names of {who} are: " + ", ".join(names_list)
 
 
 @app.get("/api/keyword/get")
-def get_keyword_alike_api(keyword: str, driver=Depends(get_db_driver)):
+def get_keyword_alike_api(keyword: str):
+    """
+    Takes arbitrary keyword, and checks if keyword exists (or diff combinations)"""
     query = """
     MATCH (n:Keyword)
     WHERE n.id =~ ".*"+$id+".*"
@@ -279,8 +303,12 @@ def get_keyword_alike_api(keyword: str, driver=Depends(get_db_driver)):
         result = session.run(query, {"id": keyword})
         return [record.data() for record in result]
 
+
 @app.get("/api/keyword/search")
-def get_keyword_community_api(id: int, driver=Depends(get_db_driver)):
+def get_keyword_community_api(_id: int):
+    """
+    Takes arbitrary keyword, and find 30 other \
+    keywords that share the same community"""
     query = """
     MATCH (a:Keyword {communityId: $similar_to})
     WITH a, rand() as r
@@ -290,11 +318,14 @@ def get_keyword_community_api(id: int, driver=Depends(get_db_driver)):
     
     """
     with driver.session() as session:
-        result = session.run(query, {"similar_to": id})
+        result = session.run(query, {"similar_to": _id})
         return [record.data() for record in result]
-    
+
+
 @app.get("/api/article/search_by_keyword")
-def get_most_influential_papers_with_keyword_api(id: str, driver=Depends(get_db_driver)):
+def get_most_influential_papers_with_keyword_api(_id: str):
+    """
+    Takes arbitrary keyword, and find 30 arbritrary articles with this keyword"""
     query = """
     MATCH (a:Article)-[:HAS_KEYWORD]->(k:Keyword {id: $id})
     WITH a, rand() as r
@@ -306,8 +337,12 @@ def get_most_influential_papers_with_keyword_api(id: str, driver=Depends(get_db_
         result = session.run(query, {"id": id})
         return [record.data() for record in result]
 
+
 @app.get("/api/article/search_by_field")
-def get_most_influential_papers_with_field_api(id: int, driver=Depends(get_db_driver)):
+def get_most_influential_papers_with_field_api(_id: int):
+    """
+    Takes community id (from api/keyword/get), and find 10 most quoted articles within this \
+    community """
     query = """
     MATCH (a:Article)-[:HAS_KEYWORD]->(k:Keyword {communityId: $id})
     OPTIONAL MATCH (a:Article)-[:REFERENCES]->(t:Article)
@@ -317,12 +352,16 @@ def get_most_influential_papers_with_field_api(id: int, driver=Depends(get_db_dr
     LIMIT 10
     """
     with driver.session() as session:
-        result = session.run(query, {"id": id})
+        result = session.run(query, {"id": _id})
         return [record.data() for record in result]
-    return
+
 
 @app.get("/api/article/search_by_text")
-def get_most_influential_papers_with_text_api(id: str, driver=Depends(get_db_driver)):
+def get_most_influential_papers_with_text_api(_id: str):
+    """
+    Takes search text, compares article items (title and abstract) \
+    with search item and returns 20 random articles that have this search item
+    """
     query = """
     MATCH (a:Article)
     WITH a, rand() as r
@@ -332,5 +371,30 @@ def get_most_influential_papers_with_text_api(id: str, driver=Depends(get_db_dri
     RETURN a, rand() as r
     """
     with driver.session() as session:
-        result = session.run(query, {"id": id})
+        result = session.run(query, {"id": _id})
         return [record.data() for record in result]
+
+
+@app.post("/chat")
+async def post_chat(prompt: Prompt):
+    """
+    API to proxy LLM call
+    """
+    try:
+        chat_completion = agent.invoke({"input": prompt.prompt})
+        return {"response": chat_completion.choices[0].message.content}
+
+    except agent.APIConnectionError as e:
+        print("The server could not be reached")
+        print(e.__cause__)  # an underlying Exception, likely raised within httpx.
+        raise HTTPException(status_code=500, detail="API Connection Error") from e
+
+    except agent.RateLimitError as e:
+        print("A 429 status code was received; we should back off a bit.")
+        raise HTTPException(status_code=429, detail="Rate Limit Exceeded") from e
+
+    except agent.APIStatusError as e:
+        print("Another non-200-range status code was received")
+        print(e.status_code)
+        print(e.response)
+        raise HTTPException(status_code=e.status_code, detail="API Status Error") from e
