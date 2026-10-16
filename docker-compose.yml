@@ -27,6 +27,8 @@ services:
       AI_API_URL: ${url_model} 
       NEO4J_URI: bolt://neo4j:7687
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      GRAPHS_USERNAME: ${graphs_username}
+      GRAPHS_PASS: ${graphs_pass}
       PYTHONUNBUFFERED: 1
       stage: prod
     volumes:
@@ -38,7 +40,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4G
+          memory: 5G
         reservations:
           memory: 1G
 

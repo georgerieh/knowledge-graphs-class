@@ -1,12 +1,24 @@
 """Module to run the FASTAPI Server"""
+import logging
 import os
 from load import main
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import dotenv_values
-from agent.graph import agent
-from neo4j import GraphDatabase
+from agent.graph import agent_executor, system_prompt_str
+from agent.services import get_researcher_basic_info, get_most_influential_papers_with_text, get_most_influential_papers_with_field, get_most_influential_papers_with_keyword, get_keyword_community, get_keyword_alike, get_paper_basic_info, get_path, get_alike, get_articles_of_author, get_h_index_of
+from langchain_core.messages import HumanMessage, SystemMessage, message_to_dict
+import traceback
 
+from neo4j import GraphDatabase
+import langchain
+logger = logging.getLogger(__name__)
+
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("httpx").setLevel(logging.DEBUG)
+logging.getLogger("httpcore").setLevel(logging.DEBUG)
+langchain.verbose = True
+langchain.debug = True
 config = dotenv_values(".env")
 
 app = FastAPI()
@@ -29,9 +41,10 @@ def get_db_driver():
 class Prompt(BaseModel):
     """
     Used in LLM Call"""
-
     prompt: str
-
+    
+class ChatRequest(BaseModel):
+  prompt: str
 
 @app.on_event("startup")
 async def startup_event():
@@ -129,104 +142,27 @@ async def root():
     Root"""
     return {"message": "Hello World"}
 
-
-# @app.get("/api/researcher/explore")
-# async def get_researcher_suggestions_from_db( who: str = "", driver = Depends(get_db_driver)):
-#     query = '''
-#     MATCH (n:Author)
-#     WHERE n.name =~ ".*$who.*"
-#     RETURN n.name, n.id, n.institution
-#     '''
-#     with driver.session() as session:
-#         result = session.run(query, {'name': who})
-#         return [record.data() for record in result]
-#     # if not results:
-#     #     return f"No researcher found similar t name {who}."
-#     # else:
-#     #     names_list = [record["name"] for record in results]
-#     #     return f"Possible names of {who} are: " + ", ".join(names_list)
-#     return results
-
-
 @app.get("/api/researcher/get_info")
 def get_researcher_basic_info_api(who: str = None, _id: int = None):
     """
     Takes id of author, and returns his id and his institution (NOT WORKS).
     In case more than 1 person have this name
     """
-    query = """
-    MATCH (n:Author)
-    WHERE ($id IS NOT NULL AND n.id = $id)
-       OR ($who IS NOT NULL AND $who <> '' AND toLower(n.name) CONTAINS toLower($who))
-    RETURN n.name, n.id, n.institution
-    LIMIT 5
-    """
-    with driver.session() as session:
-        result = session.run(query, {"who": who, "id": _id})
-        return [record.data() for record in result]
-    # if not results:
-    #     return f"No researcher found similar t name {who}."
-    # else:
-    #     names_list = [record["name"] for record in results]
-    #     return f"Possible names of {who} are: " + ", ".join(names_list)
-
-
-# @app.get("/api/researcher/get_works_info")
-# def get_researcher_works_info_api(id: int):
-#     '''
-#     Takes id of author, and returns 30 other
-#     researchers in the same community'''
-#     query = """
-#     CALL {
-#         MATCH (n:Author {id: $id})<-[:WRITTEN_BY]-(m)
-#         RETURN m.id as paper, COUNT((m)<-[:REFERENCES]-[n]) AS quotes
-#     }
-#     RETURN paper, quotes
-#     ORDER BY quotes DESC
-#     """
-#     with driver.session() as session:
-#         result = session.run(query, {"id": id})
-#         return [record.data() for record in result]
-
+    return get_researcher_basic_info(who, _id)
 
 @app.get("/api/researcher/h_index")
 def get_h_index_of_api(_id: int):
     """
     Takes id of author, and calculates his H-index
     """
-    query = """
-    
-    MATCH (n:Author {id: $id})<-[:WRITTEN_BY]-(t:Article)
-    OPTIONAL MATCH (a:Article)-[:REFERENCES]->(t)
-    WITH t, count(a) AS citations
-    ORDER BY citations DESC
-    WITH collect(citations) AS citationCounts
-    UNWIND range(1, size(citationCounts)) AS i
-    WITH i, citationCounts[i-1] AS cit
-    WHERE cit >= i
-    RETURN coalesce(max(i), 0) AS h_index
-    """
-    with driver.session() as session:
-        result = session.run(query, {"id": _id})
-        return [record.data() for record in result]
+    return get_h_index_of(_id)
 
 
 @app.get("/api/researcher/most_influential")
 def get_articles_of_author_api(_id: int):
     """
     Takes id of author, and returns 5 his most quoted works"""
-    query = """
-    
-    MATCH (n:Author {id: $id})<-[:WRITTEN_BY]-(t:Article)
-    OPTIONAL MATCH (a:Article)-[:REFERENCES]->(t)
-    WITH t, count(a) AS citations
-    RETURN n.name, n.id, t, citatitions
-    ORDER BY citations DESC
-    LIMIT 5
-    """
-    with driver.session() as session:
-        result = session.run(query, {"id": _id})
-        return [record.data() for record in result]
+    return get_articles_of_author(_id)
 
 
 @app.get("/api/community/search")
@@ -234,74 +170,28 @@ def get_alike_api(_id: int):
     """
     Takes id of author, and returns 30 other
     researchers in the same community"""
-    query = """
-    CALL {
-    MATCH (a:Author {id: $similar_to})
-    RETURN a.louvainCommunity as id
-    }
-    WITH id
-    MATCH (a:Author)
-    WHERE a.louvainCommunity = id
-    RETURN a.name
-    LIMIT 30
-    """
-    with driver.session() as session:
-        result = session.run(query, {"similar_to": _id})
-        return [record.data() for record in result]
+    return get_alike(_id)
 
 
 @app.get("/api/networking")
 def get_path_api(id1: int, id2: int):
     """
     Takes id of researcher 1 and 2 and shows path between them by CO_AUTHORED_WITH relations"""
-    query = """
-    CALL gds.allShortestPaths.delta.stream('Networking', {
-        sourceNode: $source
-    })
-    YIELD index, sourceNode, targetNode, totalCost, nodeIds, costs, path
-    WHERE targetNode = $target
-    RETURN
-        index,
-        gds.util.asNode(sourceNode).name AS sourceNodeName,
-        gds.util.asNode(targetNode).name AS targetNodeName,
-        totalCost,
-        [nodeId IN nodeIds | gds.util.asNode(nodeId).name] AS nodeNames,
-        costs,
-        nodes(path) AS path
-    ORDER BY index
-    """
-    with driver.session() as session:
-        result = session.run(query, {"source": id1, "target": id2})
-        return [record.data() for record in result]
+    return get_path(id1, id2)
 
 
 @app.get("/api/paper/get_info")
 def get_paper_basic_info_api(_id: int = None):
     """
     Takes id of paper, and returns info about this paper"""
-    query = """
-    MATCH (n:Article)
-    WHERE ($id IS NOT NULL AND n.id = $id)
-    RETURN n
-    """
-    with driver.session() as session:
-        result = session.run(query, {"id": _id})
-        return [record.data() for record in result]
+    return get_paper_basic_info(_id)
 
 
 @app.get("/api/keyword/get")
 def get_keyword_alike_api(keyword: str):
     """
     Takes arbitrary keyword, and checks if keyword exists (or diff combinations)"""
-    query = """
-    MATCH (n:Keyword)
-    WHERE n.id =~ ".*"+$id+".*"
-    RETURN n
-    LIMIT 10
-    """
-    with driver.session() as session:
-        result = session.run(query, {"id": keyword})
-        return [record.data() for record in result]
+    return get_keyword_alike(keyword)
 
 
 @app.get("/api/keyword/search")
@@ -309,33 +199,14 @@ def get_keyword_community_api(_id: int):
     """
     Takes arbitrary keyword, and find 30 other \
     keywords that share the same community"""
-    query = """
-    MATCH (a:Keyword {communityId: $similar_to})
-    WITH a, rand() as r
-    ORDER BY r
-    LIMIT 30
-    RETURN a.name AS name, r
-    
-    """
-    with driver.session() as session:
-        result = session.run(query, {"similar_to": _id})
-        return [record.data() for record in result]
+    return get_keyword_community(_id)
 
 
 @app.get("/api/article/search_by_keyword")
 def get_most_influential_papers_with_keyword_api(_id: str):
     """
     Takes arbitrary keyword, and find 30 arbritrary articles with this keyword"""
-    query = """
-    MATCH (a:Article)-[:HAS_KEYWORD]->(k:Keyword {id: $id})
-    WITH a, rand() as r
-    ORDER BY r
-    LIMIT 30
-    RETURN a, r 
-    """
-    with driver.session() as session:
-        result = session.run(query, {"id": id})
-        return [record.data() for record in result]
+    return get_most_influential_papers_with_keyword(_id)
 
 
 @app.get("/api/article/search_by_field")
@@ -343,17 +214,7 @@ def get_most_influential_papers_with_field_api(_id: int):
     """
     Takes community id (from api/keyword/get), and find 10 most quoted articles within this \
     community """
-    query = """
-    MATCH (a:Article)-[:HAS_KEYWORD]->(k:Keyword {communityId: $id})
-    OPTIONAL MATCH (a:Article)-[:REFERENCES]->(t:Article)
-    WITH a, count(t) AS citations
-    RETURN a, citations
-    ORDER BY citations DESC
-    LIMIT 10
-    """
-    with driver.session() as session:
-        result = session.run(query, {"id": _id})
-        return [record.data() for record in result]
+    return get_most_influential_papers_with_field(_id)
 
 
 @app.get("/api/article/search_by_text")
@@ -362,39 +223,39 @@ def get_most_influential_papers_with_text_api(_id: str):
     Takes search text, compares article items (title and abstract) \
     with search item and returns 20 random articles that have this search item
     """
-    query = """
-    MATCH (a:Article)
-    WITH a, rand() as r
-    WHERE a.title =~ ".*" + $id + ".*" OR a.rebuilt_abstract =~ ".*" + $id + ".*"
-    ORDER BY r
-    LIMIT 20
-    RETURN a, rand() as r
-    """
-    with driver.session() as session:
-        result = session.run(query, {"id": _id})
-        return [record.data() for record in result]
+    return get_most_influential_papers_with_text(_id)
 
+
+# @app.post("/chat")
+# async def post_chat(prompt: Prompt):
+#     """
+#     API to proxy LLM call
+#     """
+#     try:
+#         chat_completion = agent.invoke({
+#         "messages": [HumanMessage(content=prompt.prompt)]
+#         })
+
+#         messages = [msg.dict() for msg in chat_completion["messages"]]
+#         return {"response": messages}
+#     except ExceptionGroup as e:
+#         raise HTTPException(status_code=500) from e
 
 @app.post("/chat")
-async def post_chat(prompt: Prompt):
-    """
-    API to proxy LLM call
-    """
-    try:
-        chat_completion = agent.invoke({"input": prompt.prompt})
-        return {"response": chat_completion.choices[0].message.content}
+async def chat_endpoint(request: ChatRequest):
+  try:
+    initial_state = {
+        "messages": [
+            SystemMessage(content=system_prompt_str),
+            HumanMessage(content=request.prompt),
+        ]
+    }
 
-    except agent.APIConnectionError as e:
-        print("The server could not be reached")
-        print(e.__cause__)  # an underlying Exception, likely raised within httpx.
-        raise HTTPException(status_code=500, detail="API Connection Error") from e
+    result = await agent_executor.ainvoke(initial_state)
 
-    except agent.RateLimitError as e:
-        print("A 429 status code was received; we should back off a bit.")
-        raise HTTPException(status_code=429, detail="Rate Limit Exceeded") from e
+    
 
-    except agent.APIStatusError as e:
-        print("Another non-200-range status code was received")
-        print(e.status_code)
-        print(e.response)
-        raise HTTPException(status_code=e.status_code, detail="API Status Error") from e
+    return {"messages": result}
+
+  except Exception as e:
+    raise HTTPException(status_code=500, detail=str(e)) from e
