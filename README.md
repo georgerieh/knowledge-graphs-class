@@ -93,6 +93,23 @@ Commands:
 └── uv.lock
 ```
 
+## Agent Flow
+```
+                  +-------------------+
+                  |       agent       | <--------------------+
+                  +-------------------+                      |
+                            |                                |
+              Conditional Edge (should_continue)             |
+            /               |                 \              |
+      [Valid Tools]   [Tool Error / []]    [Final Answer]    |
+          /                 |                     \          |
+         v                  v                      v         |
++--------------+    +---------------+            +-----+     |
+| execute_tool |    |  retry_node   |            | END |     |
++--------------+    +---------------+            +-----+     |
+       |                    |                                |
+       +--------------------+--------------------------------+
+``` 
 ## Available API endpoints
 ![API](docs/API_Definition.png)
 

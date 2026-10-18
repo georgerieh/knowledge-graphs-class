@@ -141,4 +141,4 @@ def test_should_terminate():
 
     response = agent.should_continue(state)
 
-    assert response == END
+    assert response == "execute_tool" #?

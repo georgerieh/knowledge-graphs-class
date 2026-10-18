@@ -33,7 +33,7 @@ docker-build:
 	docker compose build
 
 docker-run:
-	docker compose up --build
+	CLEAN=1 docker compose up --build
 
 test:
 	@. .venv/bin/activate && pytest -q --cov=app --cov-report=term-missing

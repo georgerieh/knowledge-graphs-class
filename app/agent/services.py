@@ -23,7 +23,10 @@ def get_driver():
             raise ConnectionError from e
     else:
         return driver
+
+
 _syntax_validator = None
+
 
 def get_syntax_validator():
     global _syntax_validator
@@ -36,7 +39,9 @@ def get_syntax_validator():
             pass
     return _syntax_validator
 
+
 _schema_validator = None
+
 
 def get_schema_validator():
     global _schema_validator
@@ -48,6 +53,7 @@ def get_schema_validator():
         except ExceptionGroup:
             pass
     return _schema_validator
+
 
 def sanitize_floats(obj):
     """Recursively replaces NaN, Inf, and -Inf with None for JSON compliance."""

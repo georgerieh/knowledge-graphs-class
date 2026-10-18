@@ -18,7 +18,7 @@ from .services import (
     get_h_index_of,
     execute_query,
     get_schema_validator,
-    get_syntax_validator
+    get_syntax_validator,
 )
 
 current_file = Path(__file__).resolve()
@@ -42,7 +42,18 @@ def tool_get_researcher_basic_info(who: str = None, author_id: int = None):
         in second case return specific person info
         """
     try:
-        return get_researcher_basic_info(who, author_id)
+        response = get_researcher_basic_info(who, author_id)
+        if not response:
+            return {
+                "status": "not_found",
+                "data": [],
+                "message": f"No researcher found in db."
+            }
+        return {
+            "status": "success",
+            "data": response,
+            "message": "Found researcher info in database."
+        }
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: get_researcher_basic_info)"}
 
@@ -51,7 +62,18 @@ def tool_get_researcher_basic_info(who: str = None, author_id: int = None):
 def tool_get_h_index_of(author_id: int):
     """Accepts author id as a parameter, returns author h index"""
     try:
-        return get_h_index_of(author_id)
+        response = get_h_index_of(author_id)
+        if not response:
+            return {
+                "status": "not_found",
+                "data": [],
+                "message": f"No researcher found in db."
+            }
+        return {
+            "status": "success",
+            "data": response,
+            "message": "Found researcher, and his H index is returned."
+        }
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: h_index)"}
 
@@ -60,7 +82,18 @@ def tool_get_h_index_of(author_id: int):
 def tool_get_alike(author_id: int):
     """Accepts author id as a parameter, returns other authors in his community"""
     try:
-        return get_alike(author_id)
+        response = get_alike(author_id)
+        if not response:
+            return {
+                "status": "not_found",
+                "data": [],
+                "message": f"No researcher found in database."
+                }
+        return {
+            "status": "success",
+            "data": response,
+            "message": "Found researcher and list of researches in his community is provided."
+        }
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: community/search)"}
 
@@ -74,7 +107,18 @@ def tool_get_path(id1: int, id2: int):
     """Accepts author id1 as a parameter, \
     id2 as a target node, returns shortest path between them"""
     try:
-        return get_path(id1, id2)
+        response = get_path(id1, id2)
+        if not response:
+            return {
+                "status": "not_found",
+                "data": [],
+                "message": "No path between 2 researches'."
+            }
+        return {
+            "status": "success",
+            "data": response,
+            "message": "Found path."
+        }
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: networking)"}
 
@@ -83,7 +127,18 @@ def tool_get_path(id1: int, id2: int):
 def tool_get_paper_basic_info(paper_id: int):
     """Accepts id as a paper id, returns basic info"""
     try:
-        return get_paper_basic_info(paper_id)
+        response = get_paper_basic_info(paper_id)
+        if not response:
+            return {
+                "status": "not_found",
+                "data": [],
+                "message": f"No articles for {paper_id}'."
+            }
+        return {
+            "status": "success",
+            "data": response,
+            "message": "Found article in database."
+        }
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: paper_basic_info)"}
 
@@ -92,7 +147,18 @@ def tool_get_paper_basic_info(paper_id: int):
 def tool_get_articles_of_author(author_id: int):
     """Accepts author id, returns their most influential works (5)"""
     try:
-        return get_articles_of_author(author_id)
+        response = get_articles_of_author(author_id)
+        if not response:
+            return {
+                "status": "not_found",
+                "data": [],
+                "message": f"No articles for {author_id}'."
+            }
+        return {
+            "status": "success",
+            "data": response,
+            "message": "Found articles in database."
+        }
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: influential works)"}
 
@@ -104,19 +170,41 @@ def tool_get_articles_of_author(author_id: int):
 def tool_get_keyword_alike(keyword: str):
     """Accepts keyword, returns other keywords that sound alike"""
     try:
-        return get_keyword_alike(keyword)
+        response = get_keyword_alike(keyword)
+        if not response:
+            return {
+                "status": "not_found",
+                "data": [],
+                "message": f"No keyword look alikes found for '{keyword}'. Try checking for typos or use a broader term."
+            }
+        return {
+            "status": "success",
+            "data": response,
+            "message": "Found look alikes."
+        }
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: keyword alike)"}
 
 
 @tool(
-    "Get Keywords Community ",
+    "Get Keywords Community",
     description="""Accepts specific keyword community id, returns other keywords from the same community or None if Keyword not in corpus""",
 )
 def tool_get_keyword_community(id_: int):
     """Accepts keyword community id, returns other keywords from the same community"""
     try:
-        return get_keyword_community(id_)
+        response = get_keyword_community(id_)
+        if not response:
+            return {
+                "status": "not_found",
+                "data": [],
+                "message": "No keyword is found with this id."
+            }
+        return {
+            "status": "success",
+            "data": response,
+            "message": "Found keyword community example."
+        }
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: keyword community)"}
 
@@ -130,7 +218,18 @@ def tool_get_most_influential_papers_with_text(text: str):
     """Takes search text, compares article items (title and abstract) \
         with search item and returns 20 random articles that have this search item"""
     try:
-        return get_most_influential_papers_with_text(text)
+        response = get_most_influential_papers_with_text(text)
+        if not response:
+            return {
+                "status": "not_found",
+                "data": [],
+                "message": "No articles found with text in db'."
+            }
+        return {
+            "status": "success",
+            "data": response,
+            "message": "Found article in database with this text."
+        }
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: tool_get_most_influential_papers_with_text)"}
 
@@ -143,7 +242,18 @@ def tool_get_most_influential_papers_with_field(keyword_community_id: int):
     """Takes community id (from api/keyword/get), and find 10 most quoted articles within this \
     community """
     try:
-        return get_most_influential_papers_with_field(keyword_community_id)
+        response = get_most_influential_papers_with_field(keyword_community_id)
+        if not response:
+            return {
+                "status": "not_found",
+                "data": [],
+                "message": f"No articles found with this community id."
+            }
+        return {
+            "status": "success",
+            "data": response,
+            "message": "Found article in database with this keyword community id."
+        }
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: tool_get_most_influential_papers_with_field )"}
 
@@ -155,9 +265,21 @@ def tool_get_most_influential_papers_with_field(keyword_community_id: int):
 def tool_get_most_influential_papers_with_keyword(keyword: str):
     """Takes arbitrary keyword, and find 30 arbritrary articles with this keyword"""
     try:
-        return get_most_influential_papers_with_keyword(keyword)
+        response = get_most_influential_papers_with_keyword(keyword)
+        if not response:
+            return {
+                "status": "not_found",
+                "data": [],
+                "message": "No articles found with this keyword mentioned'."
+            }
+        return {
+            "status": "success",
+            "data": response,
+            "message": "Found article in database."
+        }
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: tool_get_most_influential_papers_with_keyword)"}
+
 
 @tool("Query Neo4j and get results")
 def tool_execute_query(query: str):
@@ -169,15 +291,32 @@ def tool_execute_query(query: str):
     query_upper = query.upper()
     list_keywords_banned = []
     for keyword in FORBIDDEN_KEYWORDS:
-        if re.search(r'\b' + keyword + r'\b', query_upper):
+        if re.search(r"\b" + keyword + r"\b", query_upper):
             list_keywords_banned.append(f"The keyword '{keyword}' is forbidden.")
-    if len(list_keywords_banned)>0:
-        list_keywords_banned.insert(0, "ERROR: Query rejected by safety guardrail. You must write a read-only query (e.g., MATCH ... RETURN).")
+    if len(list_keywords_banned) > 0:
+        list_keywords_banned.insert(
+            0, "ERROR: Query rejected by safety guardrail. You must write a read-only query (e.g., MATCH ... RETURN)."
+        )
     try:
         if is_valid_syntax and schema_score > 0.5 and len(list_keywords_banned) == 0:
             response = execute_query(query)
+            if not response:
+                return {
+                    "status": "not_found",
+                    "data": [],
+                    "message": "Nothing found for this query."
+                }
+            return {
+                "status": "success",
+                "data": response,
+                "message": "Found results in database."
+            }
         else:
             response = f"Schema metadata report: {schema_metadata}, syntax metadata report: {syntax_metadata}. Banned statements: {list_keywords_banned}. Please adjust"
-        return response
+        return {
+                "status": "error",
+                "data": response,
+                "message": "Validator alarm."
+            }
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: execute_query)"}

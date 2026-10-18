@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -22,7 +23,10 @@ from app.agent.services import (
     get_articles_of_author,
     get_h_index_of,
     execute_query,
+    get_schema_validator,
+    get_syntax_validator
 )
+from app.agent.tools import FORBIDDEN_KEYWORDS
 
 from scripts.load import main
 
@@ -252,7 +256,8 @@ async def chat_endpoint(request: ChatRequest):
             "messages": [
                 SystemMessage(content=system_prompt_str),
                 HumanMessage(content=request.prompt),
-            ]
+            ],
+            'retry_count':0
         }
 
         result = await agent_executor.ainvoke(initial_state)
@@ -268,7 +273,22 @@ async def execute_query_api(query: str):
     """
     Takes arbitrary query as input and returns result from Neo4j
     """
+    is_valid_syntax, syntax_metadata = get_syntax_validator().validate(query, database_name="shop")
+    schema_score, schema_metadata = get_schema_validator().validate(query=query, database_name="shop")
+    query_upper = query.upper()
+    list_keywords_banned = []
+    for keyword in FORBIDDEN_KEYWORDS:
+        if re.search(r"\b" + keyword + r"\b", query_upper):
+            list_keywords_banned.append(f"The keyword '{keyword}' is forbidden.")
+        if len(list_keywords_banned) > 0:
+            list_keywords_banned.insert(
+                0, "ERROR: Query rejected by safety guardrail. You must write a read-only query (e.g., MATCH ... RETURN)."
+            )
     try:
-        return execute_query(query)
-    except Exception as e:
+        if is_valid_syntax and schema_score > 0.5 and len(list_keywords_banned) == 0:
+            response = execute_query(query)
+        else:
+            response = f"Schema metadata report: {schema_metadata}, syntax metadata report: {syntax_metadata}. Banned statements: {list_keywords_banned}. Please adjust"
+        return response
+    except ExceptionGroup as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
