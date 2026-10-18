@@ -2,8 +2,13 @@
 ## Intro
 This project aims to track academic communities, and also networks across researchers, research articles and keywords. There are 4,894,081 papers and 45,564,149 citation relationships, which is extended by graph relations across venues, institutions, articles, researchers and keywords
 
-## Badges
-
+![Tests](badges/tests.svg)
+![Coverage](badges/coverage.svg)
+![Skipped](badges/skipped.svg)
+![XFailed](badges/xfailed.svg)
+![Warnings](badges/warnings.svg)
+![Duration](badges/duration.svg)
+![Last run](badges/last-run.svg)
 [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
 
 
@@ -85,3 +90,4 @@ The data set is designed for research purpose only. The citation data is extract
 docker compose up
 ```
 then navigate to [demo](app/demo.ipynb)
+
