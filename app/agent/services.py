@@ -2,25 +2,45 @@ import math
 import os
 from dotenv import dotenv_values
 from neo4j import GraphDatabase
+
 config = dotenv_values(".env")
 URI = os.getenv("NEO4J_URI")
 AUTH = (os.getenv("GRAPHS_USERNAME"), os.getenv("GRAPHS_PASS"))
-try:
-    driver = GraphDatabase.driver(URI, auth=AUTH)
-except Exception as e:
-    raise ConnectionError from e
+# try:
+#     driver = GraphDatabase.driver(URI, auth=AUTH)
+# except Exception as e:
+#     raise ConnectionError from e
+driver = None
+
+
+def get_driver():
+    global driver
+    if driver is None:
+        try:
+            uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+            user = os.getenv("NEO4J_USER", "neo4j")
+            password = os.getenv("NEO4J_PASSWORD", "password")
+            driver = GraphDatabase.driver(uri, auth=(user, password))
+            return driver
+        except Exception as e:
+            raise ConnectionError from e
+    else:
+        return driver
+
+
 
 def sanitize_floats(obj):
-  """Recursively replaces NaN, Inf, and -Inf with None for JSON compliance."""
-  if isinstance(obj, float):
-    if math.isnan(obj) or math.isinf(obj):
-      return None
+    """Recursively replaces NaN, Inf, and -Inf with None for JSON compliance."""
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    elif isinstance(obj, dict):
+        return {k: sanitize_floats(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_floats(v) for v in obj]
     return obj
-  elif isinstance(obj, dict):
-    return {k: sanitize_floats(v) for k, v in obj.items()}
-  elif isinstance(obj, list):
-    return [sanitize_floats(v) for v in obj]
-  return obj
+
 
 def get_researcher_basic_info(who: str = None, author_id: int = None):
     """
@@ -33,7 +53,7 @@ def get_researcher_basic_info(who: str = None, author_id: int = None):
        OR ($who IS NOT NULL AND $who <> '' AND toLower(n.name) CONTAINS toLower($who))
     RETURN n.name, n.id, n.Institution
     """
-    with driver.session() as session:
+    with get_driver().session() as session:
         result = session.run(query, {"who": who, "id": author_id})
         return sanitize_floats([record.data() for record in result])
 
@@ -54,9 +74,10 @@ def get_h_index_of(author_id: int):
     WHERE cit >= i
     RETURN coalesce(max(i), 0) AS h_index
     """
-    with driver.session() as session:
+    with get_driver().session() as session:
         result = session.run(query, {"id": author_id})
         return [record.data() for record in result]
+
 
 def get_articles_of_author(author_id: int):
     """
@@ -70,9 +91,10 @@ def get_articles_of_author(author_id: int):
     ORDER BY citations DESC
     LIMIT 5
     """
-    with driver.session() as session:
+    with get_driver().session() as session:
         result = session.run(query, {"id": author_id})
         return sanitize_floats([record.data() for record in result])
+
 
 def get_alike(author_id: int):
     """
@@ -81,42 +103,41 @@ def get_alike(author_id: int):
     query = """
     CALL {
     MATCH (a:Author {id: $similar_to})
-    RETURN a.louvainCommunity as id
+    RETURN a.communityId as id
     }
     WITH id
-    MATCH (a:Author)
-    WHERE a.louvainCommunity = id
-    RETURN a.name
+    MATCH (a:Author {communityId: id})
+    with a, rand() as sorting_parameter_ignore
+    ORDER BY sorting_parameter_ignore
     LIMIT 30
+    RETURN a.name, a.id, a.Institution, sorting_parameter_ignore
     """
-    with driver.session() as session:
+    with get_driver().session() as session:
         result = session.run(query, {"similar_to": author_id})
         return sanitize_floats([record.data() for record in result])
+
 
 def get_path(id1: int, id2: int):
     """
     Takes id of researcher 1 and 2 and shows path between them by CO_AUTHORED_WITH relations"""
     query = """
-    MATCH (sourceNodeObj {id: $source})
-    MATCH (targetNodeObj {id: $target})
-    CALL gds.allShortestPaths.delta.stream('Networking', {
-        sourceNode: $source
+    MATCH (n:Author {id: $source})
+    MATCH (m:Author {id: $target})
+    CALL gds.shortestPath.dijkstra.stream('Networking', {
+        sourceNode: n,
+        targetNode: m
     })
-    YIELD index, sourceNode, targetNode, totalCost, nodeIds, costs, path
-    WHERE targetNode = $target
-    RETURN
-        index,
-        gds.util.asNode(sourceNode).name AS sourceNodeName,
-        gds.util.asNode(targetNode).name AS targetNodeName,
-        totalCost,
-        [nodeId IN nodeIds | gds.util.asNode(nodeId).name] AS nodeNames,
-        costs,
-        nodes(path) AS path
-    ORDER BY index
+    YIELD sourceNode, targetNode, totalCost, nodeIds
+    RETURN 
+        gds.util.asNode(sourceNode).name AS source, 
+        gds.util.asNode(targetNode).name AS target, 
+        totalCost AS distance,
+        [nodeId IN nodeIds | gds.util.asNode(nodeId).name] AS pathAuthorNames
     """
-    with driver.session() as session:
+    with get_driver().session() as session:
         result = session.run(query, {"source": id1, "target": id2})
         return sanitize_floats([record.data() for record in result])
+
 
 def get_paper_basic_info(paper_id: int = None):
     """
@@ -126,52 +147,56 @@ def get_paper_basic_info(paper_id: int = None):
     WHERE ($id IS NOT NULL AND n.id = $id)
     RETURN n
     """
-    with driver.session() as session:
+    with get_driver().session() as session:
         result = session.run(query, {"id": paper_id})
         return sanitize_floats([record.data() for record in result])
+
 
 def get_keyword_alike(keyword: str):
     """
     Takes arbitrary keyword, and checks if keyword exists (or diff combinations)"""
     query = """
     MATCH (n:Keyword)
-    WHERE n.id =~ ".*"+$id+".*"
+    WHERE n.id =~ toLower(".*"+$id+".*")
     RETURN n
     LIMIT 10
     """
-    with driver.session() as session:
+    with get_driver().session() as session:
         result = session.run(query, {"id": keyword})
         return sanitize_floats([record.data() for record in result])
 
-def get_keyword_community(keyword: str):
+
+def get_keyword_community(community_id: int):
     """
     Takes arbitrary keyword, and find 30 other \
     keywords that share the same community"""
     query = """
     MATCH (a:Keyword {communityId: $similar_to})
-    WITH a, rand() as r
-    ORDER BY r
+    WITH a, rand() as sorting_parameter_ignore
+    ORDER BY sorting_parameter_ignore
     LIMIT 30
-    RETURN a.name AS name, r
+    RETURN a.name AS name, sorting_parameter_ignore
     
     """
-    with driver.session() as session:
-        result = session.run(query, {"similar_to": keyword})
+    with get_driver().session() as session:
+        result = session.run(query, {"similar_to": community_id})
         return sanitize_floats([record.data() for record in result])
+
 
 def get_most_influential_papers_with_keyword(keyword: str):
     """
     Takes arbitrary keyword, and find 30 arbritrary articles with this keyword"""
     query = """
     MATCH (a:Article)-[:HAS_KEYWORD]->(k:Keyword {id: $id})
-    WITH a, rand() as r
-    ORDER BY r
+    WITH a, rand() as sorting_parameter_ignore
+    ORDER BY sorting_parameter_ignore
     LIMIT 30
-    RETURN a, r 
+    RETURN a, sorting_parameter_ignore 
     """
-    with driver.session() as session:
+    with get_driver().session() as session:
         result = session.run(query, {"id": keyword})
         return sanitize_floats([record.data() for record in result])
+
 
 def get_most_influential_papers_with_field(keyword_community_id: int):
     """
@@ -185,9 +210,10 @@ def get_most_influential_papers_with_field(keyword_community_id: int):
     ORDER BY citations DESC
     LIMIT 10
     """
-    with driver.session() as session:
+    with get_driver().session() as session:
         result = session.run(query, {"id": keyword_community_id})
         return sanitize_floats([record.data() for record in result])
+
 
 def get_most_influential_papers_with_text(text: str):
     """
@@ -196,12 +222,22 @@ def get_most_influential_papers_with_text(text: str):
     """
     query = """
     MATCH (a:Article)
-    WITH a, rand() as r
-    WHERE a.title =~ ".*" + $id + ".*" OR a.rebuilt_abstract =~ ".*" + $id + ".*"
-    ORDER BY r
+    WITH a, rand() as sorting_parameter_ignore
+    WHERE a.title =~ toLower(".*" + '$id' + ".*") OR a.rebuilt_abstract =~ toLower(".*" + $id + ".*")
+    WITH a, sorting_parameter_ignore
+    ORDER BY sorting_parameter_ignore
     LIMIT 20
-    RETURN a, rand() as r
+    RETURN a, sorting_parameter_ignore
     """
-    with driver.session() as session:
+    with get_driver().session() as session:
         result = session.run(query, {"id": text})
+        return sanitize_floats([record.data() for record in result])
+
+
+def execute_query(query: str):
+    """
+    Takes arbitrary query as input and returns result from Neo4j
+    """
+    with get_driver().session() as session:
+        result = session.run(query)
         return sanitize_floats([record.data() for record in result])
