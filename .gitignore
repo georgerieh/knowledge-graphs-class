@@ -3,7 +3,6 @@ output.csv
 neo4j/*
 .DS_Store
 *.pyc
-.pylintrc
 .pythonversiob
 logs
 */__cpython-*
