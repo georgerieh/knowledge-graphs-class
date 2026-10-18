@@ -39,7 +39,7 @@ test:
 	@. .venv/bin/activate && pytest -q --cov=app --cov-report=term-missing
 
 lint:
-	@. .venv/bin/activate && pylint app
+	PYTHONPATH=. .venv/bin/pylint app/ scripts/
 
 format:
 	@. .venv/bin/activate && black app -l 120

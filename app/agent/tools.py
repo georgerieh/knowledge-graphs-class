@@ -1,5 +1,6 @@
 """Module to def tool_ine tools for LLM"""
 
+import re
 from pathlib import Path
 from langchain.tools import tool
 from dotenv import dotenv_values, load_dotenv
@@ -20,14 +21,13 @@ from .services import (
     get_syntax_validator
 )
 
-syntax_validator = get_syntax_validator()
-schema_validator = get_schema_validator()
-
 current_file = Path(__file__).resolve()
 project_root = current_file.parent.parent.parent
 env_path = project_root / ".env"
 config = dotenv_values(env_path)
 load_dotenv()
+
+FORBIDDEN_KEYWORDS = ["DELETE", "DETACH", "REMOVE", "SET", "CREATE", "MERGE", "DROP"]
 
 
 @tool(
@@ -159,20 +159,25 @@ def tool_get_most_influential_papers_with_keyword(keyword: str):
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: tool_get_most_influential_papers_with_keyword)"}
 
-
 @tool("Query Neo4j and get results")
 def tool_execute_query(query: str):
     """
     Takes query and get results. Use with caution
     """
+    is_valid_syntax, syntax_metadata = get_syntax_validator().validate(query, database_name="shop")
+    schema_score, schema_metadata = get_schema_validator().validate(query=query, database_name="shop")
+    query_upper = query.upper()
+    list_keywords_banned = []
+    for keyword in FORBIDDEN_KEYWORDS:
+        if re.search(r'\b' + keyword + r'\b', query_upper):
+            list_keywords_banned.append(f"The keyword '{keyword}' is forbidden.")
+    if len(list_keywords_banned)>0:
+        list_keywords_banned.insert(0, "ERROR: Query rejected by safety guardrail. You must write a read-only query (e.g., MATCH ... RETURN).")
     try:
-        is_valid_syntax, syntax_metadata = syntax_validator.validate(query, database_name="shop")
-        schema_score, schema_metadata = schema_validator.validate(query=query, database_name="shop")
-        if is_valid_syntax and schema_score > 0.5:
+        if is_valid_syntax and schema_score > 0.5 and len(list_keywords_banned) == 0:
             response = execute_query(query)
         else:
-            response = f"Schema metadata report: {schema_metadata}, syntax metadata report: {syntax_metadata}. Please adjust"
-            
+            response = f"Schema metadata report: {schema_metadata}, syntax metadata report: {syntax_metadata}. Banned statements: {list_keywords_banned}. Please adjust"
         return response
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: execute_query)"}

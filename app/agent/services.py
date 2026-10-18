@@ -1,8 +1,8 @@
 import math
 import os
 from dotenv import dotenv_values
-from neo4j import GraphDatabase
 from CyVer import SyntaxValidator, SchemaValidator
+from neo4j import GraphDatabase
 
 config = dotenv_values(".env")
 URI = os.getenv("NEO4J_URI")
@@ -32,7 +32,7 @@ def get_syntax_validator():
             driver = get_driver()
             if driver:
                 _syntax_validator = SyntaxValidator(driver, check_multilabeled_nodes=True)
-        except Exception:
+        except ExceptionGroup:
             pass
     return _syntax_validator
 
@@ -45,7 +45,7 @@ def get_schema_validator():
             driver = get_driver()
             if driver:
                 _schema_validator = SchemaValidator(driver)
-        except Exception:
+        except ExceptionGroup:
             pass
     return _schema_validator
 
