@@ -30,9 +30,10 @@ services:
       GRAPHS_USERNAME: ${graphs_username}
       GRAPHS_PASS: ${graphs_pass}
       PYTHONUNBUFFERED: 1
+      CLEAN: ${CLEAN:1}
       stage: prod
     volumes:
-      - .:/app
+      # - .:/app
       - /app/.venv
     depends_on:
       neo4j:
