@@ -1,17 +1,31 @@
 """Module to run the FASTAPI Server"""
+
 import logging
 import os
-from load import main
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from langchain_core.messages import HumanMessage, SystemMessage
 from dotenv import dotenv_values
-from agent.graph import agent_executor, system_prompt_str
-from agent.services import get_researcher_basic_info, get_most_influential_papers_with_text, get_most_influential_papers_with_field, get_most_influential_papers_with_keyword, get_keyword_community, get_keyword_alike, get_paper_basic_info, get_path, get_alike, get_articles_of_author, get_h_index_of
-from langchain_core.messages import HumanMessage, SystemMessage, message_to_dict
-import traceback
-
-from neo4j import GraphDatabase
 import langchain
+from neo4j import GraphDatabase
+from app.agent.graph import agent_executor, system_prompt_str
+from app.agent.services import (
+    get_researcher_basic_info,
+    get_most_influential_papers_with_text,
+    get_most_influential_papers_with_field,
+    get_most_influential_papers_with_keyword,
+    get_keyword_community,
+    get_keyword_alike,
+    get_paper_basic_info,
+    get_path,
+    get_alike,
+    get_articles_of_author,
+    get_h_index_of,
+    execute_query,
+)
+
+from scripts.load import main
+
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(level=logging.INFO)
@@ -41,10 +55,13 @@ def get_db_driver():
 class Prompt(BaseModel):
     """
     Used in LLM Call"""
+
     prompt: str
-    
+
+
 class ChatRequest(BaseModel):
-  prompt: str
+    prompt: str
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -142,6 +159,7 @@ async def root():
     Root"""
     return {"message": "Hello World"}
 
+
 @app.get("/api/researcher/get_info")
 def get_researcher_basic_info_api(who: str = None, _id: int = None):
     """
@@ -149,6 +167,7 @@ def get_researcher_basic_info_api(who: str = None, _id: int = None):
     In case more than 1 person have this name
     """
     return get_researcher_basic_info(who, _id)
+
 
 @app.get("/api/researcher/h_index")
 def get_h_index_of_api(_id: int):
@@ -226,36 +245,30 @@ def get_most_influential_papers_with_text_api(_id: str):
     return get_most_influential_papers_with_text(_id)
 
 
-# @app.post("/chat")
-# async def post_chat(prompt: Prompt):
-#     """
-#     API to proxy LLM call
-#     """
-#     try:
-#         chat_completion = agent.invoke({
-#         "messages": [HumanMessage(content=prompt.prompt)]
-#         })
-
-#         messages = [msg.dict() for msg in chat_completion["messages"]]
-#         return {"response": messages}
-#     except ExceptionGroup as e:
-#         raise HTTPException(status_code=500) from e
-
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
-  try:
-    initial_state = {
-        "messages": [
-            SystemMessage(content=system_prompt_str),
-            HumanMessage(content=request.prompt),
-        ]
-    }
+    try:
+        initial_state = {
+            "messages": [
+                SystemMessage(content=system_prompt_str),
+                HumanMessage(content=request.prompt),
+            ]
+        }
 
-    result = await agent_executor.ainvoke(initial_state)
+        result = await agent_executor.ainvoke(initial_state)
 
-    
+        return {"messages": result}
 
-    return {"messages": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
-  except Exception as e:
-    raise HTTPException(status_code=500, detail=str(e)) from e
+
+@app.get("/query")
+async def execute_query_api(query: str):
+    """
+    Takes arbitrary query as input and returns result from Neo4j
+    """
+    try:
+        return execute_query(query)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e

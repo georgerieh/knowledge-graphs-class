@@ -43,6 +43,12 @@ def main(driver):
         run_query(driver, "CREATE CONSTRAINT IF NOT EXISTS FOR (k:Keyword) REQUIRE k.id IS UNIQUE;")
         run_query(driver,\
             "CREATE CONSTRAINT IF NOT EXISTS FOR (i:Institution) REQUIRE i.id IS UNIQUE;")
+        run_query(driver, "CREATE INDEX FOR (u:Author);")
+        run_query(driver, "CREATE FOR (t:Article);")
+        run_query(driver, "CREATE FOR (v:Venue);")
+        run_query(driver, "CREATE FOR (k:Keyword);")
+        run_query(driver,\
+            "CREATE FOR (i:Institution);")
 
     def load_data_venue(csv_data):
         # Drop rows where VenueId is missing/NaN/None
@@ -150,7 +156,7 @@ def main(driver):
         UNWIND CASE WHEN size(row.ReferenceIds) = 0 THEN [null] ELSE row.ReferenceIds END AS refId
         FOREACH (_ IN CASE WHEN refId IS NOT NULL THEN [1] ELSE [] END |
             MERGE (ref:Article {id: refId})
-            MERGE (a)-[:REFERENCES]->(ref)
+            MERGE (a)<-[:REFERENCES]-(ref)
         )
         """
         run_query(driver, query, {"rows": valid_records})

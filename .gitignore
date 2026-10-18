@@ -3,3 +3,8 @@ output.csv
 neo4j/*
 .DS_Store
 *.pyc
+.pythonversiob
+logs
+*/__cpython-*
+*/__pycache__
+.coverage
