@@ -16,7 +16,12 @@ from .services import (
     get_articles_of_author,
     get_h_index_of,
     execute_query,
+    get_schema_validator,
+    get_syntax_validator
 )
+
+syntax_validator = get_syntax_validator()
+schema_validator = get_schema_validator()
 
 current_file = Path(__file__).resolve()
 project_root = current_file.parent.parent.parent
@@ -108,10 +113,10 @@ def tool_get_keyword_alike(keyword: str):
     "Get Keywords Community ",
     description="""Accepts specific keyword community id, returns other keywords from the same community or None if Keyword not in corpus""",
 )
-def tool_get_keyword_community(id: int):
+def tool_get_keyword_community(id_: int):
     """Accepts keyword community id, returns other keywords from the same community"""
     try:
-        return get_keyword_community(id)
+        return get_keyword_community(id_)
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: keyword community)"}
 
@@ -161,6 +166,13 @@ def tool_execute_query(query: str):
     Takes query and get results. Use with caution
     """
     try:
-        return execute_query(query)
+        is_valid_syntax, syntax_metadata = syntax_validator.validate(query, database_name="shop")
+        schema_score, schema_metadata = schema_validator.validate(query=query, database_name="shop")
+        if is_valid_syntax and schema_score > 0.5:
+            response = execute_query(query)
+        else:
+            response = f"Schema metadata report: {schema_metadata}, syntax metadata report: {syntax_metadata}. Please adjust"
+            
+        return response
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: execute_query)"}

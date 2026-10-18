@@ -2,14 +2,11 @@ import math
 import os
 from dotenv import dotenv_values
 from neo4j import GraphDatabase
+from CyVer import SyntaxValidator, SchemaValidator
 
 config = dotenv_values(".env")
 URI = os.getenv("NEO4J_URI")
 AUTH = (os.getenv("GRAPHS_USERNAME"), os.getenv("GRAPHS_PASS"))
-# try:
-#     driver = GraphDatabase.driver(URI, auth=AUTH)
-# except Exception as e:
-#     raise ConnectionError from e
 driver = None
 
 
@@ -26,8 +23,31 @@ def get_driver():
             raise ConnectionError from e
     else:
         return driver
+_syntax_validator = None
 
+def get_syntax_validator():
+    global _syntax_validator
+    if _syntax_validator is None:
+        try:
+            driver = get_driver()
+            if driver:
+                _syntax_validator = SyntaxValidator(driver, check_multilabeled_nodes=True)
+        except Exception:
+            pass
+    return _syntax_validator
 
+_schema_validator = None
+
+def get_schema_validator():
+    global _schema_validator
+    if _schema_validator is None:
+        try:
+            driver = get_driver()
+            if driver:
+                _schema_validator = SchemaValidator(driver)
+        except Exception:
+            pass
+    return _schema_validator
 
 def sanitize_floats(obj):
     """Recursively replaces NaN, Inf, and -Inf with None for JSON compliance."""

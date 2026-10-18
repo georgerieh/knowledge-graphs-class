@@ -4,23 +4,13 @@ from langgraph.graph import END
 with (
     patch("langchain_neo4j.Neo4jGraph") as mock_neo4j_graph,
     patch("app.agent.services.GraphDatabase") as mock_graph_db,
+    patch("app.agent.services.get_driver") as mock_get_driver
 ):
     mock_graph_instance = MagicMock()
     mock_neo4j_graph.return_value = mock_graph_instance
 
-    # from fastapi.testclient import TestClient
-    # from app.main import app
     import app.agent.graph as agent
     import app.agent.tools as tools
-
-
-# client = TestClient(app)
-
-
-# def test_read_main():
-#     response = client.get("/")
-#     assert response.status_code == 200
-#     assert response.json() == {"message": "Hello World"}
 
 def test_call_function():
     name = "Basic Researcher Info"
@@ -90,8 +80,7 @@ def test_call_model():
         state = {"messages": [{'id':"user", 'content':"Hello"}]}
     
         with patch("langchain_openai.ChatOpenAI.invoke") as mock_chat_invoke:
-            mock_response = MagicMock()
-            mock_response.content = "Mocked LLM response"
+            mock_response = AIMessage(content="Mocked LLM response")
             mock_chat_invoke.return_value = mock_response
     
             response = agent.call_model(state)
@@ -113,8 +102,7 @@ def test_execute_model():
     with patch("langchain_openai.ChatOpenAI.invoke") as mock_chat_invoke, \
         patch("app.agent.services.get_driver") as mock_get_driver:
         mock_get_driver.return_value = mock_driver
-        mock_response = MagicMock()
-        mock_response.content = "Mocked LLM response"
+        mock_response = AIMessage(content="Mocked LLM response")
         mock_chat_invoke.return_value = mock_response
 
         response = agent.execute_tool_node(state)

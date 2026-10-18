@@ -1,16 +1,15 @@
 """Module to load define LLM"""
 
 import os
+import json
 from pathlib import Path
 from dotenv import dotenv_values, load_dotenv
 from langchain_neo4j import Neo4jGraph
 from langchain_core.messages import ToolMessage, AIMessage
-import re
-from langchain_openai import ChatOpenAI
-import langchain
-from langgraph.graph import END, StateGraph
-import json
 from langchain_core.utils.function_calling import convert_to_openai_tool
+from langchain_openai import ChatOpenAI
+from langgraph.graph import END, StateGraph
+import langchain
 from . import tools
 
 langchain.verbose = True
@@ -114,7 +113,7 @@ def parse_groq_xml_to_tool_calls(response: AIMessage) -> AIMessage:
                     "id": "call_groq_xml_1",
                 }
             ]
-    except Exception:
+    except (json.JSONDecodeError, ExceptionGroup):
         pass
 
     return response
@@ -153,7 +152,7 @@ def execute_tool_node(state):
                     name=tool_name,
                 )
                 return {"messages": messages + [tool_msg]}
-            except Exception as e:
+            except ExceptionGroup as e:
                 print(f"Error in tool execution: {e}")
                 error_msg = ToolMessage(
                     content=f"Error executing {tool_name}: {str(e)}",

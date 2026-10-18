@@ -2,10 +2,12 @@
 
 import logging
 import os
-from scripts.load import main
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from langchain_core.messages import HumanMessage, SystemMessage
 from dotenv import dotenv_values
+import langchain
+from neo4j import GraphDatabase
 from app.agent.graph import agent_executor, system_prompt_str
 from app.agent.services import (
     get_researcher_basic_info,
@@ -21,11 +23,8 @@ from app.agent.services import (
     get_h_index_of,
     execute_query,
 )
-from langchain_core.messages import HumanMessage, SystemMessage, message_to_dict
-import traceback
 
-from neo4j import GraphDatabase
-import langchain
+from scripts.load import main
 
 logger = logging.getLogger(__name__)
 

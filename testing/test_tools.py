@@ -108,7 +108,7 @@ def test_tool_get_articles_of_author_exception():
 
 def test_tool_get_keyword_community():
     id = 1
-    called_function = tools.tool_get_keyword_community.invoke(input={'id':id})
+    called_function = tools.tool_get_keyword_community.invoke(input={'id_':id})
     assert called_function == services.get_keyword_community(community_id=id)
 
 def test_tool_get_keyword_community_exception():
@@ -117,7 +117,7 @@ def test_tool_get_keyword_community_exception():
         exc_group = ExceptionGroup("Database failed", [Exception("Connection timeout")])
         mock_function_call.side_effect = exc_group
 
-        response = tools.tool_get_keyword_community.invoke({"id": 1})
+        response = tools.tool_get_keyword_community.invoke({"id_": 1})
         expected_key = str(exc_group)
         assert response == {expected_key: "Impossible to get info (Tool: keyword community)"}
     
