@@ -150,7 +150,7 @@ def main(driver):
         UNWIND CASE WHEN size(row.ReferenceIds) = 0 THEN [null] ELSE row.ReferenceIds END AS refId
         FOREACH (_ IN CASE WHEN refId IS NOT NULL THEN [1] ELSE [] END |
             MERGE (ref:Article {id: refId})
-            MERGE (a)-[:REFERENCES]->(ref)
+            MERGE (a)<-[:REFERENCES]-(ref)
         )
         """
         run_query(driver, query, {"rows": valid_records})
