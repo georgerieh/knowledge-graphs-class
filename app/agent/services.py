@@ -23,7 +23,10 @@ def get_driver():
             raise ConnectionError from e
     else:
         return driver
+
+
 _syntax_validator = None
+
 
 def get_syntax_validator():
     global _syntax_validator
@@ -36,7 +39,9 @@ def get_syntax_validator():
             pass
     return _syntax_validator
 
+
 _schema_validator = None
+
 
 def get_schema_validator():
     global _schema_validator
@@ -48,6 +53,7 @@ def get_schema_validator():
         except ExceptionGroup:
             pass
     return _schema_validator
+
 
 def sanitize_floats(obj):
     """Recursively replaces NaN, Inf, and -Inf with None for JSON compliance."""
@@ -130,7 +136,7 @@ def get_alike(author_id: int):
     with a, rand() as sorting_parameter_ignore
     ORDER BY sorting_parameter_ignore
     LIMIT 30
-    RETURN a.name, a.id, a.Institution, sorting_parameter_ignore
+    RETURN a.name, a.id, a.Institution
     """
     with get_driver().session() as session:
         result = session.run(query, {"similar_to": author_id})
@@ -195,7 +201,7 @@ def get_keyword_community(community_id: int):
     WITH a, rand() as sorting_parameter_ignore
     ORDER BY sorting_parameter_ignore
     LIMIT 30
-    RETURN a.name AS name, sorting_parameter_ignore
+    RETURN a.name AS name
     
     """
     with get_driver().session() as session:
@@ -211,7 +217,7 @@ def get_most_influential_papers_with_keyword(keyword: str):
     WITH a, rand() as sorting_parameter_ignore
     ORDER BY sorting_parameter_ignore
     LIMIT 30
-    RETURN a, sorting_parameter_ignore 
+    RETURN a 
     """
     with get_driver().session() as session:
         result = session.run(query, {"id": keyword})
@@ -247,7 +253,7 @@ def get_most_influential_papers_with_text(text: str):
     WITH a, sorting_parameter_ignore
     ORDER BY sorting_parameter_ignore
     LIMIT 20
-    RETURN a, sorting_parameter_ignore
+    RETURN a
     """
     with get_driver().session() as session:
         result = session.run(query, {"id": text})

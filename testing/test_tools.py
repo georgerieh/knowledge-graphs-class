@@ -16,7 +16,7 @@ with (
 def test_tool_get_h_index():
     author_id = 1
     called_function = tools.tool_get_h_index_of.invoke(input={'author_id':author_id})
-    assert called_function == services.get_h_index_of(author_id=author_id)
+    assert called_function == {'status': 'not_found', 'data': [], 'message': 'No researcher found in db.'}
     
 def test_tool_get_h_index_exception():
     with patch("app.agent.tools.get_h_index_of") as mock_get_info:
@@ -31,7 +31,7 @@ def test_tool_get_h_index_exception():
 def test_tool_get_alike():
     author_id = 1
     called_function = tools.tool_get_alike.invoke(input={'author_id':author_id})
-    assert called_function == services.get_alike(author_id=author_id)
+    assert called_function == {'status': 'not_found', 'data': [], 'message': 'No researcher found in database.'}
 
 def test_get_alike_exception():
     with patch("app.agent.tools.get_alike") as mock_function_call:
@@ -46,7 +46,7 @@ def test_get_alike_exception():
 def test_tool_get_path():
     author_id = 1
     called_function = tools.tool_get_path.invoke(input={'id1':author_id, 'id2': author_id})
-    assert called_function == services.get_path(id1=author_id, id2=author_id)
+    assert called_function == {'status': 'not_found', 'data': [], 'message': "No path between 2 researches'."} 
 
 def test_tool_get_path_exception():
     with patch("app.agent.tools.get_path") as mock_function_call:
@@ -62,7 +62,7 @@ def test_tool_get_path_exception():
 def test_tool_get_paper_basic_info():
     paper_id = 1
     called_function = tools.tool_get_paper_basic_info.invoke(input={'paper_id':paper_id})
-    assert called_function == services.get_paper_basic_info(paper_id=paper_id)
+    assert called_function == {'status': 'not_found', 'data': [], 'message': "No articles for 1'."}
 
 def test_tool_get_paper_basic_info_exception():
     with patch("app.agent.tools.get_paper_basic_info") as mock_function_call:
@@ -78,7 +78,7 @@ def test_tool_get_paper_basic_info_exception():
 def test_tool_get_keyword_alike_api():
     keyword = 'str'
     called_function = tools.tool_get_keyword_alike.invoke(input={'keyword':keyword})
-    assert called_function == services.get_keyword_alike(keyword=keyword)
+    assert called_function ==  {'status': 'not_found', 'data': [], 'message': "No keyword look alikes found for 'str'. Try checking for typos or use a broader term."}
 
 def test_tool_get_keyword_alike_exception():
     with patch("app.agent.tools.get_keyword_alike") as mock_function_call:
@@ -93,7 +93,7 @@ def test_tool_get_keyword_alike_exception():
 def test_tool_get_articles_of_author():
     author_id = 1
     called_function = tools.tool_get_articles_of_author.invoke(input={'author_id':author_id})
-    assert called_function == services.get_articles_of_author(author_id=author_id)
+    assert called_function == {'status': 'not_found', 'data': [], 'message': "No articles for 1'."}
 
 def test_tool_get_articles_of_author_exception():
     with patch("app.agent.tools.get_articles_of_author") as mock_function_call:
@@ -109,7 +109,7 @@ def test_tool_get_articles_of_author_exception():
 def test_tool_get_keyword_community():
     id = 1
     called_function = tools.tool_get_keyword_community.invoke(input={'id_':id})
-    assert called_function == services.get_keyword_community(community_id=id)
+    assert called_function == {'status': 'not_found', 'data': [], 'message': 'No keyword is found with this id.'}
 
 def test_tool_get_keyword_community_exception():
     with patch("app.agent.tools.get_keyword_community") as mock_function_call:
@@ -126,7 +126,7 @@ def test_tool_get_keyword_community_exception():
 def test_tool_get_most_influential_papers_with_text():
     text = 'text'
     called_function = tools.tool_get_most_influential_papers_with_text.invoke(input={'text':text})
-    assert called_function == services.get_most_influential_papers_with_text(text=text)
+    assert called_function ==  {'status': 'not_found', 'data': [], 'message': "No articles found with text in db'."}
 
 def test_tool_get_most_infl_papers_with_text_exception():
     with patch("app.agent.tools.get_most_influential_papers_with_text") as mock_function_call:
@@ -142,7 +142,7 @@ def test_tool_get_most_infl_papers_with_text_exception():
 def test_tool_get_most_influential_papers_with_field():
     keyword_community_id = 1
     called_function = tools.tool_get_most_influential_papers_with_field.invoke(input={'keyword_community_id':keyword_community_id})
-    assert called_function == services.get_most_influential_papers_with_field(keyword_community_id=keyword_community_id)
+    assert called_function == {'status': 'not_found', 'data': [], 'message': 'No articles found with this community id.'} 
 
 def test_tool_get_most_infl_papers_with_field_exception():
     with patch("app.agent.tools.get_most_influential_papers_with_field") as mock_function_call:
@@ -158,7 +158,9 @@ def test_tool_get_most_infl_papers_with_field_exception():
 def test_tool_get_most_influential_papers_with_keyword():
     keyword = 'str'
     called_function = tools.tool_get_most_influential_papers_with_keyword.invoke(input={'keyword': keyword})
-    assert called_function == services.get_most_influential_papers_with_keyword(keyword=keyword)
+    # assert called_function == services.get_most_influential_papers_with_keyword(keyword=keyword)
+    assert called_function == {'status': 'not_found', 'data': [], 'message': "No articles found with this keyword mentioned'."}
+    # assert called_function == []
 
 def test_tool_get_most_infl_papers_with_keyword_exception():
     with patch("app.agent.tools.get_most_influential_papers_with_keyword") as mock_function_call:

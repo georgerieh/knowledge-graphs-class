@@ -30,10 +30,11 @@ services:
       GRAPHS_USERNAME: ${graphs_username}
       GRAPHS_PASS: ${graphs_pass}
       PYTHONUNBUFFERED: 1
-      CLEAN: ${CLEAN:1}
-      stage: prod
+      CLEAN: ${CLEAN:-0}
+      env: ${env}
     volumes:
       # - .:/app
+      - ./neo4j.tar.gz:/app/neo4j.tar.gz
       - /app/.venv
     depends_on:
       neo4j:
@@ -44,5 +45,3 @@ services:
           memory: 5G
         reservations:
           memory: 1G
-
-# 
