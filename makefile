@@ -4,16 +4,17 @@ TAG ?= graph-api:dev
 
 help:
 	@echo "Commands:"
-	@echo "  make venv           Create local virtualenv (.venv)"
-	@echo "  make install        Install requirements into .venv"
-	@echo "  make run            Run FastAPI (uvicorn) on :8000"
-	@echo "  make docker-build   Build Docker image (TAG=$(TAG))"
-	@echo "  make docker-run     Start the Docker Compose stack"
-	@echo "  make test           Run pytest suite"
-	@echo "  make lint           Run pylint"
-	@echo "  make format         Run black code formatter"
-	@echo "  make clean          Remove caches and temp files"
-	@echo "  make tree           Show project tree (depth 3)"
+	@echo "  make venv            Create local virtualenv (.venv)"
+	@echo "  make install         Install requirements into .venv"
+	@echo "  make run             Run FastAPI (uvicorn) on :8000"
+	@echo "  make docker-build    Build Docker image (TAG=$(TAG))"
+	@echo "  make docker-run      Start the Docker Compose stack"
+	@echo "  make docker-run-bare Start the Docker Compose stack without build"
+	@echo "  make test            Run pytest suite"
+	@echo "  make lint            Run pylint"
+	@echo "  make format          Run black code formatter"
+	@echo "  make clean           Remove caches and temp files"
+	@echo "  make tree            Show project tree (depth 3)"
 
 venv:
 	@if [ ! -d ".venv" ]; then \
@@ -33,7 +34,10 @@ docker-build:
 	docker compose build
 
 docker-run:
-	CLEAN=1 docker compose up --build
+	docker compose up --build
+
+docker-run-bare:
+	docker compose up
 
 test:
 	@. .venv/bin/activate && pytest -q --cov=app --cov-report=term-missing

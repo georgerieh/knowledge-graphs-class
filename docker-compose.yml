@@ -45,5 +45,3 @@ services:
           memory: 5G
         reservations:
           memory: 1G
-
-# 
