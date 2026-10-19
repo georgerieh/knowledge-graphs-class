@@ -24,7 +24,7 @@ from app.agent.services import (
     get_h_index_of,
     execute_query,
     get_schema_validator,
-    get_syntax_validator
+    get_syntax_validator,
 )
 from app.agent.tools import FORBIDDEN_KEYWORDS
 
@@ -257,7 +257,11 @@ async def chat_endpoint(request: ChatRequest):
                 SystemMessage(content=system_prompt_str),
                 HumanMessage(content=request.prompt),
             ],
-            'retry_count':0
+            "retry_count": 0,
+            "ai_message_count": 0,
+            "tool_iteration_count": 0,
+            "last_tool_signature": "",
+            "next_action": "agent",
         }
 
         result = await agent_executor.ainvoke(initial_state)
@@ -265,6 +269,7 @@ async def chat_endpoint(request: ChatRequest):
         return {"messages": result}
 
     except Exception as e:
+        print(str(e))
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -282,7 +287,8 @@ async def execute_query_api(query: str):
             list_keywords_banned.append(f"The keyword '{keyword}' is forbidden.")
         if len(list_keywords_banned) > 0:
             list_keywords_banned.insert(
-                0, "ERROR: Query rejected by safety guardrail. You must write a read-only query (e.g., MATCH ... RETURN)."
+                0,
+                "ERROR: Query rejected by safety guardrail. You must write a read-only query (e.g., MATCH ... RETURN).",
             )
     try:
         if is_valid_syntax and schema_score > 0.5 and len(list_keywords_banned) == 0:
