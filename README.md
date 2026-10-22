@@ -69,16 +69,8 @@ Commands:
 ├── dockerfile
 ├── docs
 │   └── API_Definition.png
-├── logs
 ├── makefile
 ├── neo4j
-│   ├── data
-│   │   ├── databases
-│   │   ├── dbms
-│   │   ├── server_id
-│   │   └── transactions
-│   └── import
-├── output.csv
 ├── pyproject.toml
 ├── README.md
 ├── scripts
@@ -112,6 +104,9 @@ Commands:
 ``` 
 ## Available API endpoints
 ![API](docs/API_Definition.png)
+
+## Graph Schema
+![Graph](docs/Schema%20Definition.png)
 
 ## Dataset provenance
 Taken from: https://www.kaggle.com/datasets/mathurinache/citation-network-dataset under CC BY-NC-SA 4.0
