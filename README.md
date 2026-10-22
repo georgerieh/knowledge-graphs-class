@@ -21,6 +21,9 @@ This project aims to track academic communities, and also networks across resear
  (:Author) ──────[:WORKS_AT]──────> (:Institution)
 ```
 
+## Graph Schema
+![Graph](docs/Schema%20Definition.png)
+
 ### 2 Projections 
 are available
 ```
@@ -105,9 +108,27 @@ Commands:
 ## Available API endpoints
 ![API](docs/API_Definition.png)
 
-## Graph Schema
-![Graph](docs/Schema%20Definition.png)
+## Query effectiveness
+To test any of queries in [services.py](app/agent/services.py), you can run EXPLAIN and PROFILE queries along the code of interest. Here is an example:
 
+### Explain:
+**What it does**: Shows you the logical and physical plan (the "blueprint") the database intends to use.   
+**Side effects**: None. No data is read, written, or modified, and no actual results are returned.   **Key Metric to Look For**: Estimated Rows. This tells you how many rows the cost-based planner thinks each step of the query will handle based on statistics.  
+
+![Example Explain](docs/Explain.png)
+
+### Profile
+**What it does**: Runs the query and profiles every single operator in the execution tree, showing you what actually happened rather than what was estimated.   
+**Side effects**: It executes the query for real. If your query contains CREATE, SET, or DELETE, those changes will be committed to the database.   
+**Key Metrics to Look For**:
+- **Rows**: The actual number of rows produced by that operator (compare this with Estimated Rows to see if your planner is misinformed).   
+- **DB Hits (Database Hits)**: A count of low-level storage engine operations (e.g., reading nodes, relationships, properties, or index entries). High DB hits usually point to performance bottlenecks.   - **Memory (Bytes)**: The peak heap memory used by that specific operator.
+
+![Example Profile](docs/Profile.png)
+
+## System Design
+
+![System](docs/Architecture.png)
 ## Dataset provenance
 Taken from: https://www.kaggle.com/datasets/mathurinache/citation-network-dataset under CC BY-NC-SA 4.0
 
@@ -133,7 +154,7 @@ docker compose up --build
 ```
 in another terminal
 ``` 
-docker model run docker model run hf.co/bartowski/Llama-3-Groq-8B-Tool-Use-GGUF:Q6_K_L 
+docker model run hf.co/bartowski/Llama-3-Groq-8B-Tool-Use-GGUF:Q6_K_L 
 ```
 then navigate to [demo](app/demo.ipynb)
 
@@ -147,4 +168,7 @@ CLEAN=1 docker compose up --build
 ```
 
 You can ignore step 1 and 2 then
+
+## Anti genericity appendix 
+Document is available [here](docs/academic_citation_network_schema.md)
 
