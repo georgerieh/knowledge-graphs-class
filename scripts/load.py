@@ -43,12 +43,12 @@ def main(driver):
         run_query(driver, "CREATE CONSTRAINT IF NOT EXISTS FOR (k:Keyword) REQUIRE k.id IS UNIQUE;")
         run_query(driver,\
             "CREATE CONSTRAINT IF NOT EXISTS FOR (i:Institution) REQUIRE i.id IS UNIQUE;")
-        run_query(driver, "CREATE INDEX FOR (u:Author);")
-        run_query(driver, "CREATE FOR (t:Article);")
-        run_query(driver, "CREATE FOR (v:Venue);")
-        run_query(driver, "CREATE FOR (k:Keyword);")
+        run_query(driver, "CREATE INDEX author_idx FOR (u:Author) on (u.id);")
+        run_query(driver, "CREATE INDEX article_idx FOR (t:Article) on (t.id);")
+        run_query(driver, "CREATE INDEX venue_idx FOR (v:Venue) on (v.id);")
+        run_query(driver, "CREATE INDEX keywords_idx FOR (k:Keyword) on (k.id);")
         run_query(driver,\
-            "CREATE FOR (i:Institution);")
+            "CREATE INDEX institution_idx FOR (i:Institution) on (i.id);")
 
     def load_data_venue(csv_data):
         # Drop rows where VenueId is missing/NaN/None
