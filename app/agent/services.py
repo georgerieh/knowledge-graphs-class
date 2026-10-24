@@ -78,6 +78,7 @@ def get_researcher_basic_info(who: str = None, author_id: int = None):
     WHERE ($id IS NOT NULL AND n.id = $id)
        OR ($who IS NOT NULL AND $who <> '' AND toLower(n.name) CONTAINS toLower($who))
     RETURN n.name, n.id, n.Institution
+    LIMIT 30
     """
     with get_driver().session() as session:
         result = session.run(query, {"who": who, "id": author_id})
