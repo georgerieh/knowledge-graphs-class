@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="assets/app.css" type="text/css">
+    <title>Searchbar</title>
+</head>
+
+<body>
+    <div>
+        <div>
+            <div style="display: inline-block">
+            <div style="color: #5f6468; display: inline-block">
+            <h1>Academic Citation Network Research</h1>
+            <p style="color: #5f6468; font-size: small;">
+                Graph Database Interface by Georg Riekhakainen
+            </p>
+            </div>
+            <div id="parent" class="container" style="display: inline-block; border-radius: 25px; background:#afcfff">
+                <button class="tablink center" onclick="openTab('article', this)" id="defaultOpen">Article</button>
+                <button class="tablink center" onclick="openTab('author', this)">Author</button>
+                <button class="tablink center" onclick="openTab('keyword', this)">Keyword</button>
+            </div>
+            </div>
+            <div style="float: inline-end; padding-top: 40px; padding-right: 100px;">
+                <p>About</p>
+            </div>    
+        </div>
+        <div>
+            
+        </div>
+        <hr>
+        <!-- // Source - https://stackoverflow.com/q/71506410 -->
+        <!-- // Posted by EricVallieres -->
+        <!-- // Retrieved 2026-10-24, License - CC BY-SA 4.0 -->
+        <div id="author" class="tabcontent">
+        <form name="searchform" id="searchform" class="search-form" onSubmit="return dosearch(event);">
+            <div class="search-form-combined">
+            <select name="sengines" id="sengines" class="selectbox">
+                <option id="options" value="api/researcher/get_info?who=">Researcher</option>                <option id="options"
+                    value="api/researcher/h_index?_id=">
+                    H-index</option>
+                <option id="options"
+                    value="api/researcher/most_influential?_id=">
+                    Most quoted articles</option>
+                <option id="options"
+                    value="api/community/search?_id=">
+                    Similar researchers</option>
+                <option id="options"
+                    value="api/networking?val=">
+                    Similar researchers (id1,id2)</option>
+            </select>
+            <input type="text" class="search-form-input searchbox"
+                style="border-radius: 0 25px 25px 0; width: 70%; display: inline;"
+                placeholder="Saisissez les termes de votre recherche.">
+                </div>
+            <input type="submit" name="" id="searchsubmit" class="button submit-button" value="Search" />
+        </form>
+    </div>
+    </div>
+    <div id="article" class="tabcontent">
+        <form name="searchform" id="searchform" class="search-form" onSubmit="return dosearch(event);">
+            <div class="search-form-combined">
+            <select name="sengines" class="selectbox">
+                <option id="options" value="api/paper/get_info?_id=">Article Info</option>
+                <option id="options" value="api/article/search_by_keyword?_id=" selected>Search by keyword</option>
+                <option id="options" value="api/article/search_by_text?_id=" selected>Search by text</option>
+                <option id="options" value="api/article/search_by_field?_id=" selected>Search by similar articles</option>
+            </select>
+            <input type="text" class="search-form-input searchbox" id="input"
+                style="border-radius: 0 25px 25px 0; width: 70%; display: inline;"
+                placeholder="Saisissez les termes de votre recherche.">
+            </div>
+            <input type="submit" name="" style="float:right" id="searchsubmit" class="button submit-button" value="Search" />
+        </form>
+    </div>
+    </div>
+    <div id="keyword" class="tabcontent">
+        <form name="searchform" id="searchform" class="search-form" onSubmit="return dosearch(event);">
+            <div class="search-form-combined">
+            <select name="sengines" class="selectbox">
+                <option id="options" value="api/keyword/get?keyword=">Keyword search</option>
+                <option id="options" value="api/keyword/search?_id=" selected>Field of science search</option>
+            </select>
+            <input type="text" class="search-form-input searchbox"
+                style="border-radius: 0 25px 25px 0; width: 70%; display: inline;"
+                placeholder="Saisissez les termes de votre recherche.">
+                </div>
+            <input type="submit" name="" id="searchsubmit" class="button submit-button" value="Search" />
+        </form>
+    </div>
+    <div id="response" style="display: none;">
+        <p>Error</p>
+    </div>
+    </div>
+    
+    <script src="assets/app.js"></script>
+</body>
+
+</html>

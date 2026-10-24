@@ -33,7 +33,7 @@ services:
       CLEAN: ${CLEAN:-0}
       env: ${env}
     volumes:
-      # - .:/app
+      - .:/app
       - ./neo4j.tar.gz:/app/neo4j.tar.gz
       - /app/.venv
     depends_on:

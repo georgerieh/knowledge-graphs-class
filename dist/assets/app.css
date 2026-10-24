@@ -1,0 +1,195 @@
+body {
+    background-color: #f8fafd;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.options{
+    font-family: Arial, Helvetica, sans-serif;
+}
+.tablink {
+  color: white;
+  float: left;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 10px 16px;
+  font-size: 17px;
+  /* width: 25%; */
+  border-radius: 25px;
+  border: solid 10px;
+  border-color: #afcfff;
+  background: #afcfff;
+}
+
+/* Change background color of buttons on hover */
+.tablink:hover {
+  background-color: blue;
+}
+
+/* Set default styles for tab content */
+.tabcontent {
+  color: white;
+  display: none;
+  padding: 50px;
+  text-align: center;
+}
+
+/* Style each tab content individually
+#London {background-color:red;}
+#Paris {background-color:green;}
+#Tokyo {background-color:blue;}
+#Oslo {background-color:orange;} */
+
+/*
+Source - https://stackoverflow.com/a/6810051
+Posted by pasine, modified by community. See post 'Timeline' for change history
+Retrieved 2026-10-24, License - CC BY-SA 4.0
+*/
+
+#parent {
+    text-align:center;
+    position: relative;
+    left: 12%;
+    
+}
+.block {
+    text-align:left;
+}
+.center {
+    margin:auto;
+}
+.left {
+    margin:auto auto auto 0;
+}
+.right {
+    margin:auto 0 auto auto;
+}
+
+.container{
+  align-items: center;
+  justify-content: center;
+  border-radius: 25px;
+  border-color: black;
+}
+/* https://medium.com/100-days-in-kyoto-to-create-a-web-app-with-google/day-17-styling-a-search-box-like-googles-e17dd9074abe */
+.searchbox, .selectbox {
+  --target-size: 80px;
+  --box-height: var(--target-size);
+  --border-width: 2px;
+  --border-radius: calc(var(--box-height) / 2);
+  height: var(--box-height);
+  max-width: 561px;
+}
+.searchbox input[type='search'] {
+  /* border: var(--border-width) solid var(--dark-gray); */
+  /* border-radius: var(--border-radius); */
+  height: 100%;
+  width: 100%
+}
+.searchbox input[type='search']::placeholder {
+  color: var(--light-gray);
+  opacity: 1;
+} 
+/* .searchbox, .selectbox {
+  --side-margin: calc(var(--border-radius) / 2);
+  --icon-vertical-margin: calc(
+    (var(--box-height) - var(--icon-size)) / 2
+  ); /* ADDED */ 
+.searchbox input[type='search'] {
+  padding-left: calc(var(--side-margin) + var(--icon-size) + 4px);
+  padding-right: var(--side-margin); /* ADDED */
+}
+
+input[type='search']::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+.selectbox{
+    border-radius: 25px 0 0 25px;
+}
+
+        /* Form Layout */
+        .search-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .search-form-combined {
+            display: flex;
+            align-items: center;
+            border: 2px solid #e2e8f0;
+            border-radius: 30px;
+            background-color: #ffffff;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            align-items: stretch;
+        }
+
+        .selectbox {
+            background-color: #f8fafc;
+            border: none;
+            border-right: 1px solid #e2e8f0;
+            color: #334155;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 14px 18px;
+            outline: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .selectbox:hover {
+            background-color: #f1f5f9;
+        }
+
+        .search-form-input.searchbox {
+            border: none !important;
+            border-radius: 0 !important;
+            /* width: 70% !important; */
+            display: inline !important;
+            font-size: 14px;
+            padding: 14px 20px;
+            color: #0f172a;
+            outline: none;
+            background: transparent;
+        }
+
+.search-container {
+  display: flex;
+  align-items: stretch; /* Forces children to have equal height */
+}
+
+
+.search-container input,
+.search-container button {
+  box-sizing: border-box;
+  height: 48px;          
+  margin: 0;             
+  vertical-align: middle;
+}
+
+.search-container button {
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-form-combined * {
+  box-sizing: border-box;
+  max-width: 760px;
+}
+
+table {
+  table-layout: fixed;
+  width: 90%;
+  margin: 10px auto;
+  border-collapse: collapse;
+  border-top: 1px solid #999999;
+  border-bottom: 1px solid #999999;
+  text-align: center;
+  border-color: black;
+  border: solid 1px
+}
+th, td {
+  border: 1px solid;
+}

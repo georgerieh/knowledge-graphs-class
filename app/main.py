@@ -4,6 +4,9 @@ import logging
 import os
 import re
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
 from pydantic import BaseModel
 from langchain_core.messages import HumanMessage, SystemMessage
 from dotenv import dotenv_values
@@ -40,7 +43,26 @@ langchain.debug = True
 config = dotenv_values(".env")
 
 app = FastAPI()
+app.frontend("/", directory="dist")
+# app.mount("/", StaticFiles(directory="dist",html = True), name="dist")
 
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:8080",
+    "http://localhost:8000",
+    "http://localhost:3000",
+    
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 URI = os.getenv("NEO4J_URI")
 AUTH = (config["graphs_username"], config["graphs_pass"])
 try:
@@ -157,11 +179,11 @@ async def startup_event():
         )
 
 
-@app.get("/")
-async def root():
-    """
-    Root"""
-    return {"message": "Hello World"}
+# @app.get("/")
+# async def root():
+#     """
+#     Root"""
+#     return {"message": "Hello World"}
 
 
 @app.get("/api/researcher/get_info")
