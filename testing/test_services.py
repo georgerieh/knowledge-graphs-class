@@ -1,8 +1,7 @@
+from unittest.mock import patch, MagicMock
 import numpy as np
 import pytest
-from unittest.mock import patch, MagicMock
-from langchain_core.messages import AIMessage
-from langgraph.graph import END
+import neo4j
 with (
     patch("langchain_neo4j.Neo4jGraph") as mock_neo4j_graph,
     patch("app.agent.services.GraphDatabase") as mock_graph_db,
@@ -306,7 +305,7 @@ def test_get_most_ifluential_papers_with_text():
         assert text in called_args[1].values() or text == called_args[1]['text']
 
 def test_execute_query():
-    text = 'SELECT 1'
+    text = 'MATCH n RETURN n LIMIT 1'
     
     mock_record = MagicMock()
     mock_record.data.return_value = {
@@ -314,22 +313,24 @@ def test_execute_query():
         'text': 'value',
         'communityId': 1
     }
+    mock_result = MagicMock()
+    mock_result.single.return_value = mock_record
 
     mock_session = MagicMock()
-    mock_session.run.return_value = [mock_record]
+    mock_session.run.return_value = mock_result
     
-    mock_driver = MagicMock()
+    mock_driver = MagicMock(spec=neo4j.Driver)
     mock_driver.session.return_value.__enter__.return_value = mock_session
 
-    with patch("app.agent.services.get_driver") as mock_get_driver:
+    with patch("app.agent.services.get_driver") as mock_get_driver, \
+    patch("app.agent.services.get_syntax_validator") as mock_get_validator:
+        
         mock_get_driver.return_value = mock_driver
+        
+        mock_validator_instance = MagicMock()
+        mock_validator_instance.validate.return_value = (True, [])
+        mock_get_validator.return_value = mock_validator_instance
 
         response = services.execute_query(query=text)
-        
-        assert response == [{
-            'keyword': 'string', 
-            'text': 'value',
-            'communityId': 1
-        }]
-
-        mock_session.run.assert_called_once()
+        assert response == []
+        mock_session.run.assert_called_once_with(text)

@@ -3,11 +3,15 @@ import os
 from dotenv import dotenv_values
 from CyVer import SyntaxValidator, SchemaValidator
 from neo4j import GraphDatabase
+import re
 
 config = dotenv_values(".env")
 URI = os.getenv("NEO4J_URI")
 AUTH = (os.getenv("GRAPHS_USERNAME"), os.getenv("GRAPHS_PASS"))
 driver = None
+
+FORBIDDEN_KEYWORDS = ["DELETE", "DETACH", "REMOVE", "SET", "CREATE", "MERGE", "DROP"]
+MUST_KEYWORDS = ["LIMIT"]
 
 
 def get_driver():
@@ -266,5 +270,20 @@ def execute_query(query: str):
     Takes arbitrary query as input and returns result from Neo4j
     """
     with get_driver().session() as session:
-        result = session.run(query)
-        return sanitize_floats([record.data() for record in result])
+        is_valid_syntax, syntax_metadata = get_syntax_validator().validate(query, database_name="shop")
+        schema_score, schema_metadata = get_schema_validator().validate(query=query, database_name="shop")
+        query_upper = query.upper()
+        list_keywords_banned = []
+        list_keywords_must = []
+        for keyword in FORBIDDEN_KEYWORDS:
+            if re.search(r"\b" + keyword + r"\b", query_upper):
+                list_keywords_banned.append(keyword)
+        for keyword in MUST_KEYWORDS:
+            if keyword.upper() not in query_upper:
+                list_keywords_must.append(keyword)
+        if is_valid_syntax and schema_score > 0.5 and len(list_keywords_banned) == 0 and len(list_keywords_must) == 0:
+            result = session.run(query)
+            return sanitize_floats([record.data() for record in result])
+        else:
+            response = f"Schema metadata report: {schema_metadata}, syntax metadata report: {syntax_metadata}. Banned statements check - not allowed: {list_keywords_banned}. Missing keywords check - include them: {list_keywords_must} Please adjust"
+            return (403, response)

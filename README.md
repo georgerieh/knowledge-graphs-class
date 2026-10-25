@@ -2,6 +2,8 @@
 ## Intro
 This project aims to track academic communities, and also networks across researchers, research articles and keywords. There are 4,894,081 papers and 45,564,149 citation relationships, which is extended by graph relations across venues, institutions, articles, researchers and keywords
 
+Scroll to "Interface" to see it in action
+
 ![Tests](badges/tests.svg)
 ![Coverage](badges/coverage.svg)
 ![Skipped](badges/skipped.svg)
@@ -12,14 +14,25 @@ This project aims to track academic communities, and also networks across resear
 [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
 
 
-## Schema:
-```
-(:Article) ──[:WRITTEN_BY]──> (:Author)
-   └──────[:REFERENCES] -> (:Article)
-   └──────[:PUBLISHED_IN] -> (:Venue)
-   └──────[:HAS_KEYWORD]──────> (:Keyword)
- (:Author) ──────[:WORKS_AT]──────> (:Institution)
-```
+## Table of Contents
+* [Intro](#intro)
+* [Graph Schema](#graph-schema)
+  + [2 Projections ](#2-projections)
+* [Interface](#interface)
+* [Make commands (for convenience)](#make-commands-for-convenience)
+* [Project structure](#project-structure)
+* [Agent Flow](#agent-flow)
+* [Available API endpoints](#available-api-endpoints)
+* [Query effectiveness](#query-effectiveness)
+  + [Explain](#explain)
+  + [Profile](#profile)
+* [System Design](#system-design)
+* [Dataset provenance](#dataset-provenance)
+* [How to start](#how-to-start)
+  + [Important](#important)
+* [Anti genericity appendix ](#anti-genericity-appendix)
+* [Limitations](#limitations)
+
 
 ## Graph Schema
 ![Graph](docs/Schema%20Definition.png)
@@ -30,6 +43,14 @@ are available
 - Networking: (:Author)-[:CO_AUTHORED_WITH]->(:Author)
 - KeywordNetwork (:Keyword)-[:SHARED_ARTICLE]->(:Keyword)
 ```
+
+## Interface
+
+When run with docker, a web page available at localhost:8000 for smooth user experience.
+
+![Interface](docs/interface.png)
+
+
 ## Make commands (for convenience)
 
 ```
@@ -111,7 +132,7 @@ Commands:
 ## Query effectiveness
 To test any of queries in [services.py](app/agent/services.py), you can run EXPLAIN and PROFILE queries along the code of interest. Here is an example:
 
-### Explain:
+### Explain
 **What it does**: Shows you the logical and physical plan (the "blueprint") the database intends to use.   
 **Side effects**: None. No data is read, written, or modified, and no actual results are returned.   **Key Metric to Look For**: Estimated Rows. This tells you how many rows the cost-based planner thinks each step of the query will handle based on statistics.  
 
@@ -171,4 +192,8 @@ You can ignore step 1 and 2 then
 
 ## Anti genericity appendix 
 Document is available [here](docs/academic_citation_network_schema.md)
+
+## Limitations
+
+Louvain produces only non-overlapping communities, which means that each node can belong to at most one community. This is highly unrealistic in many real-world applications. For example, in social networks, most people belong to multiple communities: their family, their friends, their co-workers, old school buddies, etc. In biological networks, most genes or proteins belong to more than one pathway or complex. Furthermore, Louvain has been shown to sometimes produce arbitrarily badly connected communities ([Source](https://en.wikipedia.org/wiki/Louvain_method#Disadvantages))
 
