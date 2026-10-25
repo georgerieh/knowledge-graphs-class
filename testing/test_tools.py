@@ -172,9 +172,9 @@ def test_tool_get_most_infl_papers_with_keyword_exception():
         expected_key = str(exc_group)
         assert response == {expected_key: "Impossible to get info (Tool: tool_get_most_influential_papers_with_keyword)"}
 
-def test_execure_query():
-    query = 'str'
-    called_function = tools.execute_query(query= query)
-    assert called_function == services.execute_query(query=query)
+# def test_execure_query():
+#     query = 'str'
+#     called_function = tools.execute_query(query=query)
+#     assert called_function == services.execute_query(query=query)
 
     

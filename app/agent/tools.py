@@ -45,7 +45,7 @@ def tool_get_researcher_basic_info(who: str = None, author_id: int = None):
     try:
         response = get_researcher_basic_info(who, author_id)
         if not response:
-            return {"status": "not_found", "data": [], "message": f"No researcher found in db."}
+            return {"status": "not_found", "data": [], "message": "No researcher found in db."}
         return {"status": "success", "data": response, "message": "Found researcher info in database."}
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: get_researcher_basic_info)"}
@@ -57,7 +57,7 @@ def tool_get_h_index_of(author_id: int):
     try:
         response = get_h_index_of(author_id)
         if not response:
-            return {"status": "not_found", "data": [], "message": f"No researcher found in db."}
+            return {"status": "not_found", "data": [], "message": "No researcher found in db."}
         return {"status": "success", "data": response, "message": "Found researcher, and his H index is returned."}
     except ExceptionGroup as e:
         return {f"{str(e)}": "Impossible to get info (Tool: h_index)"}
@@ -69,7 +69,7 @@ def tool_get_alike(author_id: int):
     try:
         response = get_alike(author_id)
         if not response:
-            return {"status": "not_found", "data": [], "message": f"No researcher found in database."}
+            return {"status": "not_found", "data": [], "message": "No researcher found in database."}
         return {
             "status": "success",
             "data": response,

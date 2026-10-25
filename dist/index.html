@@ -22,6 +22,7 @@
                 <button class="tablink center" onclick="openTab('article', this)" id="defaultOpen">Article</button>
                 <button class="tablink center" onclick="openTab('author', this)">Author</button>
                 <button class="tablink center" onclick="openTab('keyword', this)">Keyword</button>
+                <button class="tablink center" onclick="openTab('query', this)">Query</button>
             </div>
             </div>
             <div style="float: inline-end; padding-top: 40px; padding-right: 100px;">
@@ -83,6 +84,19 @@
             <select name="sengines" class="selectbox">
                 <option id="options" value="api/keyword/get?keyword=">Keyword search</option>
                 <option id="options" value="api/keyword/search?_id=" selected>Field of science search</option>
+            </select>
+            <input type="text" class="search-form-input searchbox"
+                style="border-radius: 0 25px 25px 0; width: 70%; display: inline;"
+                placeholder="Saisissez les termes de votre recherche.">
+                </div>
+            <input type="submit" name="" id="searchsubmit" class="button submit-button" value="Search" />
+        </form>
+    </div>
+    <div id="query" class="tabcontent">
+        <form name="searchform" id="searchform" class="search-form" onSubmit="return dosearch(event);">
+            <div class="search-form-combined">
+            <select name="sengines" id="sengines" class="selectbox">
+                <option id="options" value="query?query=">Query</option>                
             </select>
             <input type="text" class="search-form-input searchbox"
                 style="border-radius: 0 25px 25px 0; width: 70%; display: inline;"
