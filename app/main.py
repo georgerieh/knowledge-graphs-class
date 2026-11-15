@@ -63,7 +63,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 URI = os.getenv("NEO4J_URI")
-AUTH = (config["graphs_username"], config["graphs_pass"])
+AUTH = (os.getenv("graphs_username"), os.getenv("graphs_pass"))
 try:
     driver = GraphDatabase.driver(URI, auth=AUTH)
 except Exception as e:
@@ -105,77 +105,6 @@ async def startup_event():
             print("Database is empty. Starting import...")
             main(driver)
             print("Data successfully loaded.")
-
-        proj_result = session.run(
-            """
-                CALL gds.graph.project.cypher(
-                    'Networking',
-                    'MATCH (auth:Author) RETURN id(auth) AS id',
-                    'MATCH (auth1:Author)<-[:WRITTEN_BY]-(a:Article)-[:WRITTEN_BY]->(auth2:Author)
-                    WHERE auth1 < auth2
-                    RETURN id(auth1) as source, id(auth2) as target, "CO_AUTHORED_WITH" AS type'
-                )
-                YIELD nodeCount, relationshipCount
-                RETURN nodeCount, relationshipCount
-            """
-        )
-        record = proj_result.single()
-        print(
-            f"Graph 'Networking' projected: {record['nodeCount']} nodes, \
-                {record['relationshipCount']} relationships."
-        )
-        louvain_result = session.run(
-            """
-                        CALL gds.louvain.write(
-                            'Networking',
-                            {
-                                writeProperty: 'communityId'
-                            }
-                        )
-                        YIELD communityCount, modularity, ranLevels
-                        RETURN communityCount, modularity, ranLevels
-                    """
-        )
-        l_record = louvain_result.single()
-        print(
-            f"Louvain completed: {l_record['communityCount']} communities found (Modularity: {\
-                l_record['modularity']:.4f})."
-        )
-        proj_result2 = session.run(
-            """
-                CALL gds.graph.project.cypher(
-                    'KeywordNetwork',
-                    'MATCH (k:Keyword) RETURN id(k) AS id',
-                    'MATCH (k1:Keyword)<-[:HAS_KEYWORD]-(a:Article)-[:HAS_KEYWORD]->(k2:Keyword)
-                    WHERE id(k1) < id(k2)
-                    RETURN id(k1) AS source, id(k2) AS target, "SHARED_ARTICLE" AS type'
-                )
-                YIELD nodeCount, relationshipCount
-                RETURN nodeCount, relationshipCount
-            """
-        )
-        record = proj_result2.single()
-        print(
-            f"Graph 'KeywordNetwork' projected: {record['nodeCount']} nodes, {\
-                record['relationshipCount']} relationships."
-        )
-        louvain_result2 = session.run(
-            """ \
-                CALL gds.louvain.write(
-                    'KeywordNetwork',
-                    {
-                        writeProperty: 'communityId'
-                    }
-                )
-                YIELD communityCount, modularity, ranLevels
-                RETURN communityCount, modularity, ranLevels
-            """
-        )
-        l_record = louvain_result2.single()
-        print(
-            f"Louvain completed: {l_record['communityCount']} communities found (Modularity: {\
-                l_record['modularity']:.4f})."
-        )
 
 
 # @app.get("/")

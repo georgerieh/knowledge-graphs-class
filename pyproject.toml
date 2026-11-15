@@ -30,6 +30,7 @@ dependencies = [
     "tqdm>=4.70.1",
     "tqdm-loggable>=0.4.1",
     "unicorn[standart]>=2.1.4",
+    "unidecode>=1.4.0",
 ]
 [tool.fastapi]
 entrypoint = "main:app"

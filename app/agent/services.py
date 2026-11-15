@@ -1,3 +1,4 @@
+from unidecode import unidecode
 import math
 import os
 from dotenv import dotenv_values
@@ -85,7 +86,7 @@ def get_researcher_basic_info(who: str = None, author_id: int = None):
     LIMIT 30
     """
     with get_driver().session() as session:
-        result = session.run(query, {"who": who, "id": author_id})
+        result = session.run(query, {"who": unidecode(who), "id": author_id})
         return sanitize_floats([record.data() for record in result])
 
 
@@ -96,8 +97,7 @@ def get_h_index_of(author_id: int):
     query = """
     
     MATCH (n:Author {id: $id})<-[:WRITTEN_BY]-(t:Article)
-    OPTIONAL MATCH (a:Article)-[:REFERENCES]->(t)
-    WITH t, count(a) AS citations
+    WITH t, COUNT {(a:Article)-[:REFERENCES]->(t)} AS citations
     ORDER BY citations DESC
     WITH collect(citations) AS citationCounts
     UNWIND range(1, size(citationCounts)) AS i
@@ -112,15 +112,14 @@ def get_h_index_of(author_id: int):
 
 def get_articles_of_author(author_id: int):
     """
-    Takes id of author, and returns 5 his most quoted works"""
+    Takes id of author, and returns 100 his most quoted works"""
     query = """
     
     MATCH (n:Author {id: $id})<-[:WRITTEN_BY]-(t:Article)
-    OPTIONAL MATCH (a:Article)-[:REFERENCES]->(t)
-    WITH n, t, count(a) AS citations
-    RETURN n.name, n.id, t, citations
+    WITH DISTINCT n, t
+    RETURN n.name, n.id, t, COUNT { (a:Article)-[:REFERENCES]->(t) } AS citations
     ORDER BY citations DESC
-    LIMIT 5
+    LIMIT 100
     """
     with get_driver().session() as session:
         result = session.run(query, {"id": author_id})
@@ -217,15 +216,18 @@ def get_keyword_community(community_id: int):
 def get_most_influential_papers_with_keyword(keyword: str):
     """
     Takes arbitrary keyword, and find 30 arbritrary articles with this keyword"""
+    spl = keyword.split(",")
+    low_spl = [x.lower() for x in spl]
     query = """
-    MATCH (a:Article)-[:HAS_KEYWORD]->(k:Keyword {id: $id})
+    MATCH (a:Article)-[:HAS_KEYWORD]->(k:Keyword)
+    WHERE toLower(k.id) IN $id
     WITH a, rand() as sorting_parameter_ignore
     ORDER BY sorting_parameter_ignore
     LIMIT 30
     RETURN a 
     """
     with get_driver().session() as session:
-        result = session.run(query, {"id": keyword})
+        result = session.run(query, {"id": low_spl})
         return sanitize_floats([record.data() for record in result])
 
 
@@ -235,9 +237,8 @@ def get_most_influential_papers_with_field(keyword_community_id: int):
     community """
     query = """
     MATCH (a:Article)-[:HAS_KEYWORD]->(k:Keyword {communityId: $id})
-    OPTIONAL MATCH (a:Article)-[:REFERENCES]->(t:Article)
-    WITH a, count(t) AS citations
-    RETURN a, citations
+    WITH DISTINCT a
+    RETURN a, COUNT { (a:Article)-[:REFERENCES]->(t:Article) } as citations
     ORDER BY citations DESC
     LIMIT 10
     """
@@ -254,7 +255,7 @@ def get_most_influential_papers_with_text(text: str):
     query = """
     MATCH (a:Article)
     WITH a, rand() as sorting_parameter_ignore
-    WHERE a.title =~ toLower(".*" + '$id' + ".*") OR a.rebuilt_abstract =~ toLower(".*" + $id + ".*")
+    WHERE toLower(a.title) =~ toLower(".*" + '$id' + ".*") OR a.rebuilt_abstract =~ toLower(".*" + $id + ".*")
     WITH a, sorting_parameter_ignore
     ORDER BY sorting_parameter_ignore
     LIMIT 20

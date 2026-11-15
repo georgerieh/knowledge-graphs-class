@@ -1,7 +1,142 @@
-// Source - https://stackoverflow.com/q/71506410
-// Posted by EricVallieres
-// Retrieved 2026-10-24, License - CC BY-SA 4.0
-const url = new URL("http://localhost:8000");
+const API_BASE = "http://localhost:8080";
+let currentIntent = "article-keyword"; // Default intent
+
+const intentCache = {};
+
+function setIntent(intent, element) {
+  const workspace = document.getElementById("workspace");
+
+  if (workspace) {
+    intentCache[currentIntent] = workspace.innerHTML;
+  }
+
+  currentIntent = intent;
+
+  document
+    .querySelectorAll(".chip")
+    .forEach((chip) => chip.classList.remove("active"));
+  element.classList.add("active");
+
+  const input = document.getElementById("search-input");
+  switch (intent) {
+    case "article-keyword":
+      input.placeholder = "Enter paper keyword (e.g. graph database)...";
+      break;
+    case "article-text":
+      input.placeholder = "Enter text to search for...";
+      break;
+    case "article-field":
+      input.placeholder = "Enter numeric field id to search articles/...";
+      break;
+    case "paper-info":
+      input.placeholder = "Enter Article ID...";
+      break;
+    case "researcher-info":
+      input.placeholder = "Enter researcher name...";
+      break;
+    case "researcher-alike":
+      input.placeholder = "Enter researcher id...";
+      break;
+    case "researcher-hindex":
+      input.placeholder = "Enter researcher ID for H-index...";
+      break;
+    case "researcher-articles":
+      input.placeholder = "Enter researcher ID for H-index...";
+      break;
+    case "keyword-search":
+      input.placeholder = "Enter keyword or field of science...";
+      break;
+    case "keyword-community":
+      input.placeholder =
+        "Enter keyword community id to find similar communities...";
+      break;
+    case "networking":
+      input.placeholder =
+        "Enter two researcher IDs separated by comma (id1,id2)...";
+      break;
+    case "custom-query":
+      input.placeholder = "Enter graph query expression...";
+      break;
+  }
+
+  if (intentCache[currentIntent]) {
+    workspace.innerHTML = intentCache[currentIntent];
+  } else {
+    workspace.innerHTML = `<div class="placeholder-state">Enter a query above to explore the academic graph.</div>`;
+  }
+}
+
+async function handleSearch(event) {
+  if (event) event.preventDefault();
+
+  const inputVal = document.getElementById("search-input").value.trim();
+  const workspace = document.getElementById("workspace");
+
+  if (!inputVal) return;
+
+  workspace.innerHTML =
+    '<div class="placeholder-state">Querying graph database...</div>';
+
+  let endpoint = "";
+  // #TODO : dict instead of case break
+  switch (currentIntent) {
+    case "article-keyword":
+      endpoint = `api/article/search_by_keyword?_id=${encodeURIComponent(inputVal)}`;
+      break;
+    case "article-text":
+      endpoint = `api/article/search_by_text?_id=${encodeURIComponent(inputVal)}`;
+      break;
+    case "article-field":
+      endpoint = `api/article/search_by_field?_id=${encodeURIComponent(inputVal)}`;
+      break;
+    case "paper-info":
+      endpoint = `api/paper/get_info?_id=${encodeURIComponent(inputVal)}`;
+      break;
+    case "researcher-info":
+      endpoint = `api/researcher/get_info?who=${encodeURIComponent(inputVal)}`;
+      break;
+    case "researcher-hindex":
+      endpoint = `api/researcher/h_index?_id=${encodeURIComponent(inputVal)}`;
+      break;
+    case "researcher-articles":
+      endpoint = `api/researcher/most_influential?_id=${encodeURIComponent(inputVal)}`;
+      break;
+    case "keyword-search":
+      endpoint = `api/keyword/get?keyword=${encodeURIComponent(inputVal)}`;
+      break;
+    case "keyword-community":
+      endpoint = `api/keyword/search?_id=${encodeURIComponent(inputVal)}`;
+      break;
+    case "researcher-alike":
+      endpoint = `api/community/search?_id=${encodeURIComponent(inputVal)}`;
+      break;
+    case "networking":
+      const ids = inputVal.split(",");
+      endpoint = `api/networking?id1=${ids[0] ? ids[0].trim() : ""}&id2=${ids[1] ? ids[1].trim() : ""}`;
+      break;
+    case "custom-query":
+      endpoint = `query?query=${encodeURIComponent(inputVal)}`;
+      break;
+    default:
+      endpoint = `api/article/search_by_keyword?_id=${encodeURIComponent(inputVal)}`;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/${endpoint}`);
+    const text = await response.text();
+    const viewElement = parseApiResponseToView(text);
+
+    workspace.innerHTML = "";
+    workspace.appendChild(viewElement);
+
+    intentCache[currentIntent] = workspace.innerHTML;
+  } catch (err) {
+    console.error("Search failed:", err);
+    workspace.innerHTML =
+      '<div class="placeholder-state" style="color: #d93025;">Failed to connect to backend server.</div>';
+  }
+}
+
 function flattenObject(obj, prefix = "") {
   let flattened = {};
 
@@ -23,115 +158,87 @@ function flattenObject(obj, prefix = "") {
   }
   return flattened;
 }
-function jsonToTableParser(inputData) {
-  let jsonData = inputData;
+
+function parseApiResponseToView(inputData) {
+  let data = inputData;
 
   if (typeof inputData === "string") {
     try {
-      jsonData = JSON.parse(inputData);
+      data = JSON.parse(inputData);
     } catch (error) {
       console.error("Invalid JSON string:", error);
-      jsonData = [];
+      data = { error: "Invalid JSON", raw: inputData };
     }
   }
 
-  if (!Array.isArray(jsonData) || jsonData.length === 0) {
-    const table = document.createElement("table");
-    const row = table.insertRow();
-    const cell = row.insertCell();
-    cell.textContent = "No data available or invalid JSON";
-    return table;
+  const container = document.createElement("div");
+  container.className = "api-response-container";
+
+  if (data === null || data === undefined) {
+    container.textContent = "No data available";
+    return container;
   }
-  const flattenedData = jsonData.map((item) => {
-    return item && typeof item === "object"
+
+  if (Array.isArray(data)) {
+    if (data.length === 0) {
+      container.textContent = "Empty list returned from API";
+      return container;
+    }
+
+    data.forEach((item, index) => {
+      const card = document.createElement("div");
+      card.className = "api-card";
+
+      const header = document.createElement("div");
+      header.className = "api-card-header";
+      header.textContent = `Record #${index + 1}`;
+      card.appendChild(header);
+
+      card.appendChild(renderItem(item));
+      container.appendChild(card);
+    });
+  } else if (typeof data === "object") {
+    const card = document.createElement("div");
+    card.className = "api-card single-object-card";
+
+    card.appendChild(renderItem(data));
+    container.appendChild(card);
+  } else {
+    const el = document.createElement("div");
+    el.className = "api-primitive-value";
+    el.textContent = String(data);
+    container.appendChild(el);
+  }
+
+  return container;
+}
+
+function renderItem(item) {
+  const list = document.createElement("dl");
+  list.className = "api-kv-list";
+
+  const flattened =
+    item !== null && typeof item === "object" && !Array.isArray(item)
       ? flattenObject(item)
       : { value: item };
-  });
 
-  const keysSet = new Set();
-  flattenedData.forEach((item) => {
-    if (item && typeof item === "object") {
-      Object.keys(item).forEach((key) => keysSet.add(key));
+  for (const [key, value] of Object.entries(flattened)) {
+    const dt = document.createElement("dt");
+    dt.textContent = key.replace(/^n\./, "").toUpperCase();
+
+    const dd = document.createElement("dd");
+    if (value !== null && value !== undefined) {
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = String(value);
+      dd.textContent = tempDiv.textContent || tempDiv.innerText || value;
+    } else {
+      dd.textContent = "—";
+      dd.className = "empty-cell";
     }
-  });
-  const headers = Array.from(keysSet);
 
-  const table = document.createElement("table");
-  table.className = "json-data-table";
+    list.appendChild(dt);
+    list.appendChild(dd);
+  }
 
-  const thead = table.createTHead();
-  const tbody = table.createTBody();
-
-  const headerRow = thead.insertRow();
-  headers.forEach((headerKey) => {
-    const th = document.createElement("th");
-    th.textContent = headerKey.replace(/^n\./, "").toUpperCase();
-    headerRow.appendChild(th);
-  });
-
-  flattenedData.forEach((item) => {
-    const row = tbody.insertRow();
-    headers.forEach((headerKey) => {
-      const td = row.insertCell();
-      const value = item[headerKey];
-
-      if (value !== null && value !== undefined) {
-        const tempDiv = document.createElement("div");
-        tempDiv.innerHTML = String(value);
-        td.textContent = tempDiv.textContent || tempDiv.innerText || value;
-      } else {
-        td.textContent = "—";
-        td.className = "empty-cell";
-      }
-    });
-  });
-
-  return table;
+  return list;
 }
-
-async function dosearch(event) {
-  if (event) event.preventDefault();
-  const activeForm = document.querySelector(
-    '.tabcontent[style*="display: block"] form',
-  );
-  const select = activeForm.querySelector('select[name="sengines"]');
-  const input = activeForm.querySelector('input[type="text"]');
-  const queryUrl = url + select.value + encodeURIComponent(input.value);
-  if (select.value == "api/networking?val=") {
-    queryUrl =
-      url +
-      "api/networking?" +
-      "id1=" +
-      input.value.split(",")[0] +
-      "id2=" +
-      input.value.split(",")[1];
-  }
-  try {
-    const response = await fetch(queryUrl);
-    const text = await response.text();
-    const display = document.getElementById("response");
-    display.style.display = "block";
-    display.replaceChildren(jsonToTableParser(text));
-  } catch (err) {
-    console.error("Search failed:", err);
-  }
-  return false;
-}
-function openTab(cityName, elmnt) {
-  var i, tabcontent, tablinks;
-  tabcontent = document.getElementsByClassName("tabcontent");
-  for (i = 0; i < tabcontent.length; i++) {
-    tabcontent[i].style.display = "none";
-  }
-
-  tablinks = document.getElementsByClassName("tablink");
-  for (i = 0; i < tablinks.length; i++) {
-    tablinks[i].style.backgroundColor = "";
-  }
-
-  document.getElementById(cityName).style.display = "block";
-
-  elmnt.style.backgroundColor = "#0b57d0";
-}
-
-document.getElementById("defaultOpen").click();

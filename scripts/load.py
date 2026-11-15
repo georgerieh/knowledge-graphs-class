@@ -1,8 +1,10 @@
 """Module to load data to Neo4j"""
+
 import ast
 import gc
 import math
 import logging
+from unidecode import unidecode
 import pandas as pd
 from dotenv import dotenv_values
 import numpy as np
@@ -16,6 +18,8 @@ def clean_val(val):
     Replace Nan to None while inserting to database'''
     if isinstance(val, float) and math.isnan(val):
         return None
+    elif isinstance(val, str):
+        return unidecode(val)
     return val
 
 
@@ -43,15 +47,7 @@ def main(driver):
         run_query(driver, "CREATE CONSTRAINT IF NOT EXISTS FOR (k:Keyword) REQUIRE k.id IS UNIQUE;")
         run_query(driver,\
             "CREATE CONSTRAINT IF NOT EXISTS FOR (i:Institution) REQUIRE i.id IS UNIQUE;")
-        run_query(driver, "CREATE INDEX author_idx FOR (u:Author) on (u.id);")
-        run_query(driver, "CREATE INDEX article_idx FOR (t:Article) on (t.id);")
-        run_query(driver, "CREATE INDEX venue_idx FOR (v:Venue) on (v.id);")
-        run_query(driver, "CREATE INDEX keywords_idx FOR (k:Keyword) on (k.id);")
-        run_query(driver,\
-            "CREATE INDEX institution_idx FOR (i:Institution) on (i.id);")
-
     def load_data_venue(csv_data):
-        # Drop rows where VenueId is missing/NaN/None
         csv_data = csv_data.dropna(subset=["VenueId"])
         csv_data = csv_data[csv_data["VenueId"].astype(str).str.lower() != "nan"]
 
@@ -106,6 +102,78 @@ def main(driver):
             MERGE (u)-[:WORKS_AT]->(i)
         """
         run_query(driver, query, {"rows": records})
+    def load_projections(driver):
+        with driver.session() as session:
+            proj_result = session.run(
+                """
+                    CALL gds.graph.project.cypher(
+                        'Networking',
+                        'MATCH (auth:Author) RETURN id(auth) AS id',
+                        'MATCH (auth1:Author)<-[:WRITTEN_BY]-(a:Article)-[:WRITTEN_BY]->(auth2:Author)
+                        WHERE auth1 < auth2
+                        RETURN id(auth1) as source, id(auth2) as target, "CO_AUTHORED_WITH" AS type'
+                    )
+                    YIELD nodeCount, relationshipCount
+                    RETURN nodeCount, relationshipCount
+                """
+            )
+            record = proj_result.single()
+            print(
+                f"Graph 'Networking' projected: {record['nodeCount']} nodes, \
+                    {record['relationshipCount']} relationships."
+            )
+            louvain_result = session.run(
+                """
+                            CALL gds.louvain.write(
+                                'Networking',
+                                {
+                                    writeProperty: 'communityId'
+                                }
+                            )
+                            YIELD communityCount, modularity, ranLevels
+                            RETURN communityCount, modularity, ranLevels
+                        """
+            )
+            l_record = louvain_result.single()
+            print(
+                f"Louvain completed: {l_record['communityCount']} communities found (Modularity: {\
+                    l_record['modularity']:.4f})."
+            )
+            proj_result2 = session.run(
+                """
+                    CALL gds.graph.project.cypher(
+                        'KeywordNetwork',
+                        'MATCH (k:Keyword) RETURN id(k) AS id',
+                        'MATCH (k1:Keyword)<-[:HAS_KEYWORD]-(a:Article)-[:HAS_KEYWORD]->(k2:Keyword)
+                        WHERE id(k1) < id(k2)
+                        RETURN id(k1) AS source, id(k2) AS target, "SHARED_ARTICLE" AS type'
+                    )
+                    YIELD nodeCount, relationshipCount
+                    RETURN nodeCount, relationshipCount
+                """
+            )
+            record = proj_result2.single()
+            print(
+                f"Graph 'KeywordNetwork' projected: {record['nodeCount']} nodes, {\
+                    record['relationshipCount']} relationships."
+            )
+            louvain_result2 = session.run(
+                """ \
+                    CALL gds.louvain.write(
+                        'KeywordNetwork',
+                        {
+                            writeProperty: 'communityId'
+                        }
+                    )
+                    YIELD communityCount, modularity, ranLevels
+                    RETURN communityCount, modularity, ranLevels
+                """
+            )
+            l_record = louvain_result2.single()
+            print(
+                f"Louvain completed: {l_record['communityCount']} communities found (Modularity: {\
+                    l_record['modularity']:.4f})."
+            )
 
     def load_data_articles(article_records):
         valid_records = []
@@ -162,7 +230,6 @@ def main(driver):
         run_query(driver, query, {"rows": valid_records})
 
     create_constraints()
-
     for chunk in pd.read_csv("output.csv", chunksize=chunk_size):
         chunk = chunk.replace({np.nan: None})
         chunk = chunk.fillna(np.nan).replace([np.nan], [None])
@@ -276,5 +343,6 @@ def main(driver):
             if i % 10 == 0:
                 print(f"{i}th chunk has been processed", flush=True)
         i += 1
+    load_projections(driver)
 
     print("All data successfully processed")

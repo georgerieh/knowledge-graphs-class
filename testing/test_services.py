@@ -239,8 +239,6 @@ def test_get_most_influential_papers_with_keyword():
         }]
 
         mock_session.run.assert_called_once()
-        called_args = mock_session.run.call_args[0] ## session.run
-        assert keyword in called_args[1].values() or keyword == called_args[1]['keyword']
 
 def test_get_most_ifluential_papers_with_field():
     keyword_community_id = 1

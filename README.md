@@ -180,7 +180,7 @@ docker model run hf.co/bartowski/Llama-3-Groq-8B-Tool-Use-GGUF:Q6_K_L
 then navigate to [demo](app/demo.ipynb)
 
 ### Important
-Due to the large size of the dataset, there is already prepared 5% sample in neo4j.tar.gz archive.
+Due to the large size of the dataset, there is already prepared 5% sample in [neo4j.tar.gz](https://github.com/georgerieh/knowledge-graphs-class/blob/6d17694b5a0cc926773378547fae4536bf403d60/neo4j.tar.gz) archive.
 
 If you don't want to unpack all the data and unload it to Cypher (it can easily take 1+Hour), pass this command instead of bare docker compose
 
