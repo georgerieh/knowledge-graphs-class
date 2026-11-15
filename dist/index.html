@@ -5,111 +5,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="assets/app.css" type="text/css">
-    <title>Searchbar</title>
+    <title>Academic Citation Network Explorer</title>
 </head>
 
 <body>
-    <div>
-        <div>
-            <div style="display: inline-block">
-            <div style="color: #5f6468; display: inline-block">
-            <h1>Academic Citation Network Research</h1>
-            <p style="color: #5f6468; font-size: small;">
-                Graph Database Interface by Georg Riekhakainen
-            </p>
+    <header class="scholar-header">
+        <div class="header-content">
+            <div class="brand-section">
+                <h1>Academic Citation Network</h1>
+                <p class="subtitle">Graph Database Explorer by Georg Riekhakainen</p>
             </div>
-            <div id="parent" class="container" style="display: inline-block; border-radius: 25px; background:#afcfff">
-                <button class="tablink center" onclick="openTab('article', this)" id="defaultOpen">Article</button>
-                <button class="tablink center" onclick="openTab('author', this)">Author</button>
-                <button class="tablink center" onclick="openTab('keyword', this)">Keyword</button>
-                <button class="tablink center" onclick="openTab('query', this)">Query</button>
+            <div class="header-about">
+                <span>About</span>
             </div>
-            </div>
-            <div style="float: inline-end; padding-top: 40px; padding-right: 100px;">
-                <p>About</p>
-            </div>    
         </div>
-        <div>
-            
-        </div>
-        <hr>
-        <!-- // Source - https://stackoverflow.com/q/71506410 -->
-        <!-- // Posted by EricVallieres -->
-        <!-- // Retrieved 2026-10-24, License - CC BY-SA 4.0 -->
-        <div id="author" class="tabcontent">
-        <form name="searchform" id="searchform" class="search-form" onSubmit="return dosearch(event);">
-            <div class="search-form-combined">
-            <select name="sengines" id="sengines" class="selectbox">
-                <option id="options" value="api/researcher/get_info?who=">Researcher</option>                <option id="options"
-                    value="api/researcher/h_index?_id=">
-                    H-index</option>
-                <option id="options"
-                    value="api/researcher/most_influential?_id=">
-                    Most quoted articles</option>
-                <option id="options"
-                    value="api/community/search?_id=">
-                    Similar researchers</option>
-                <option id="options"
-                    value="api/networking?val=">
-                    Similar researchers (id1,id2)</option>
-            </select>
-            <input type="text" class="search-form-input searchbox"
-                style="border-radius: 0 25px 25px 0; width: 70%; display: inline;"
-                placeholder="Saisissez les termes de votre recherche.">
+    </header>
+
+    <main class="main-container">
+        <!-- Omni-Search & Filter Bar -->
+        <div class="search-wrapper">
+            <form id="search-form" class="search-form" onsubmit="handleSearch(event)">
+                <div class="search-input-container">
+                    <svg class="search-icon" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
+                    <input type="text" id="search-input" class="search-input" placeholder="Search papers, authors, keywords, or query IDs..." autocomplete="off">
+                    <button type="submit" class="search-submit-btn">Explore</button>
                 </div>
-            <input type="submit" name="" id="searchsubmit" class="button submit-button" value="Search" />
-        </form>
-    </div>
-    </div>
-    <div id="article" class="tabcontent">
-        <form name="searchform" id="searchform" class="search-form" onSubmit="return dosearch(event);">
-            <div class="search-form-combined">
-            <select name="sengines" class="selectbox">
-                <option id="options" value="api/paper/get_info?_id=">Article Info</option>
-                <option id="options" value="api/article/search_by_keyword?_id=" selected>Search by keyword</option>
-                <option id="options" value="api/article/search_by_text?_id=" selected>Search by text</option>
-                <option id="options" value="api/article/search_by_field?_id=" selected>Search by similar articles</option>
-            </select>
-            <input type="text" class="search-form-input searchbox" id="input"
-                style="border-radius: 0 25px 25px 0; width: 70%; display: inline;"
-                placeholder="Saisissez les termes de votre recherche.">
+            </form>
+
+            <!-- Dynamic Filter Pills -->
+            <div class="filter-chips">
+                <button class="chip active" data-intent="article-keyword" onclick="setIntent('article-keyword', this)">Papers by Keyword</button>
+                <button class="chip" data-intent="article-text" onclick="setIntent('article-text', this)">Papers by Text</button>
+                <button class="chip" data-intent="article-field" onclick="setIntent('article-field', this)">Papers by Field of Science</button>
+                <button class="chip" data-intent="paper-info" onclick="setIntent('paper-info', this)">Paper Info</button>
+                <button class="chip" data-intent="researcher-info" onclick="setIntent('researcher-info', this)">Researcher</button>
+                <button class="chip" data-intent="researcher-alike" onclick="setIntent('researcher-alike', this)">Similar Researchers</button>
+                <button class="chip" data-intent="researcher-hindex" onclick="setIntent('researcher-hindex', this)">H-Index</button>
+                <button class="chip" data-intent="researcher-articles" onclick="setIntent('researcher-articles', this)">Researcher works</button>
+                <button class="chip" data-intent="keyword-search" onclick="setIntent('keyword-search', this)">Keywords</button>
+                <button class="chip" data-intent="keyword-community" onclick="setIntent('keyword-community', this)">Keywords together</button>
+                <button class="chip" data-intent="networking" onclick="setIntent('networking', this)">Network Path (id1,id2)</button>
+                <button class="chip" data-intent="custom-query" onclick="setIntent('custom-query', this)">Raw Query</button>
             </div>
-            <input type="submit" name="" style="float:right" id="searchsubmit" class="button submit-button" value="Search" />
-        </form>
-    </div>
-    </div>
-    <div id="keyword" class="tabcontent">
-        <form name="searchform" id="searchform" class="search-form" onSubmit="return dosearch(event);">
-            <div class="search-form-combined">
-            <select name="sengines" class="selectbox">
-                <option id="options" value="api/keyword/get?keyword=">Keyword search</option>
-                <option id="options" value="api/keyword/search?_id=" selected>Field of science search</option>
-            </select>
-            <input type="text" class="search-form-input searchbox"
-                style="border-radius: 0 25px 25px 0; width: 70%; display: inline;"
-                placeholder="Saisissez les termes de votre recherche.">
-                </div>
-            <input type="submit" name="" id="searchsubmit" class="button submit-button" value="Search" />
-        </form>
-    </div>
-    <div id="query" class="tabcontent">
-        <form name="searchform" id="searchform" class="search-form" onSubmit="return dosearch(event);">
-            <div class="search-form-combined">
-            <select name="sengines" id="sengines" class="selectbox">
-                <option id="options" value="query?query=">Query</option>                
-            </select>
-            <input type="text" class="search-form-input searchbox"
-                style="border-radius: 0 25px 25px 0; width: 70%; display: inline;"
-                placeholder="Saisissez les termes de votre recherche.">
-                </div>
-            <input type="submit" name="" id="searchsubmit" class="button submit-button" value="Search" />
-        </form>
-    </div>
-    <div id="response" style="display: none;">
-        <p>Error</p>
-    </div>
-    </div>
-    
+        </div>
+
+        <!-- Result Workspace -->
+        <section id="workspace" class="workspace">
+            <div class="placeholder-state">
+                <p>Enter a query above or select a filter category to explore the academic graph.</p>
+            </div>
+        </section>
+    </main>
+
     <script src="assets/app.js"></script>
 </body>
 

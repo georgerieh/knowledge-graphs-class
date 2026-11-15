@@ -8,3 +8,4 @@ logs
 */__cpython-*
 */__pycache__
 .coverage
+neo4j.tar.gz

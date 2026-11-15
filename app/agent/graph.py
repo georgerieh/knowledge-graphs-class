@@ -4,14 +4,13 @@ import os
 import json
 from enum import Enum
 from typing import TypedDict, Annotated, List, Dict, Optional, Literal
-from pydantic import BaseModel, Field
 import operator
 from pathlib import Path
+from pydantic import BaseModel, Field
 from dotenv import dotenv_values, load_dotenv
 from langchain_neo4j import Neo4jGraph
 from langchain_core.messages import ToolMessage, AIMessage, HumanMessage, SystemMessage
 from langchain_core.utils.function_calling import convert_to_openai_tool
-from langchain_core.output_parsers import PydanticOutputParser
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, StateGraph
 from langgraph.graph.message import add_messages
