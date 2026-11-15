@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8080";
+const API_BASE = "";
 let currentIntent = "article-keyword"; // Default intent
 
 const intentCache = {};
